@@ -4,13 +4,17 @@
 
 ## How a game works
 
-Best of 3 rounds. Each round both players get the same topic and swap roles:
+2 rounds; roles swap each round (`GAME.MATCH_ROUNDS` in `server/engine/config.ts`).
 
-1. **Baiter** has 45s to post the baitiest take they can.
-2. **Defender** has 30s to clap back, stay calm, or hit **Ignore**.
-3. The **AI judge** scores the bait (provocation, plausibility, brevity, creativity) and the reply (composure), flags if the defender **took the bait** (+10 to the baiter), and roasts both.
+1. A **hot-take category** is drawn (Food crimes, LA life, Texting etiquette… see `lib/categories.ts`).
+2. The **baiter** posts the spiciest take they can (45s, or 25s in ⚡ Quick mode). Stuck? **Inspo 🎲** shows an example (copying it exactly caps creativity).
+3. The **responder** claps back or hits **Ignore** (30s / 15s).
+4. The **AI judge** scores and roasts both. The reveal auto-advances.
 
-Bait the topic, not the person: slurs or attacks on real people/groups are a **foul** and score zero.
+Scoring (plan section 3 + ratio):
+- Baiter = provocation + plausibility + creativity (max 30), **+10 if the responder took the bait**
+- Responder = composure × 2 + ratio (max 30). Ignoring = safe 14; a calm, clever clap-back (e.g. 27) beats it.
+- Flagged post (slurs, attacks on real people/groups) = 0 for its author. Ties break on total composure.
 
 ## Architecture
 
@@ -36,12 +40,14 @@ Judging runs in the background (`after()`), and if Gemini is slow or rate-limite
 | GET | `/api/v1/rooms/:code` | — | — |
 | POST | `/api/v1/rooms/:code/actions` | `{ type: "post_bait" \| "post_reply", text }` or `{ type: "ignore" \| "timeout" \| "next" }` | `Bearer <token>` |
 | GET | `/api/v1/health` | — | — |
+| POST | `/api/judge` | `JudgeRequest { topic, bait, response \| null }` → `JudgeResult` (see `lib/types.ts`) | — |
 
 Errors always look like `{ "error": { "code": "not_your_turn", "message": "…" } }`.
 
 ## Setup
 
 1. **Supabase** → SQL Editor → paste `supabase/schema.sql` → Run.
+   (Re-run it after pulling new versions: it's safe to run again and adds any new columns.)
 2. **Vercel** → import this repo, add the env vars from `.env.example`, deploy.
 3. Open `/api/v1/health` on your deployment: every value should be `true`.
 

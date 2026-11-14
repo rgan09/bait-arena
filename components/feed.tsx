@@ -42,7 +42,9 @@ export function Post({
   );
 }
 
-export function Countdown({ endsAt, total, now }: { endsAt: string | null; total: number; now: number }) {
+export function Countdown({
+  endsAt, total, now, label = "Time left",
+}: { endsAt: string | null; total: number; now: number; label?: string }) {
   if (!endsAt) return null;
   const left = Math.max(0, new Date(endsAt).getTime() - now);
   const secs = Math.ceil(left / 1000);
@@ -51,7 +53,7 @@ export function Countdown({ endsAt, total, now }: { endsAt: string | null; total
   return (
     <div className="px-4 pt-3">
       <div className="mb-1 flex justify-between text-xs font-semibold uppercase tracking-wider text-zinc-500">
-        <span>Time left</span>
+        <span>{label}</span>
         <span className={danger ? "animate-pulse text-rose-400" : "text-zinc-300"}>{secs}s</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">

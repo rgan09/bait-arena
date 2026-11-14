@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Bait Arena",
-  description: "1v1 ragebait battles judged by AI. Post bait. Don't take the bait.",
+  description: "1v1 hot-take battles judged by AI. Post bait. Don't take the bait.",
 };
 
 export const viewport: Viewport = {

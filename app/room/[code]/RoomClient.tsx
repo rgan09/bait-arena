@@ -7,6 +7,7 @@ import { Recap } from "@/components/Recap";
 import { ResultCard } from "@/components/ResultCard";
 import { useNow, useRoom } from "@/hooks/useRoom";
 import { api, ApiError, loadSession, rememberName, saveSession, savedName } from "@/lib/api";
+import { getCategory } from "@/lib/categories";
 import type { Action, PlayerSession, Room } from "@/lib/types";
 import { GAME, TOTAL_TURNS } from "@/server/engine/config";
 
@@ -53,7 +54,7 @@ export default function RoomClient({ code }: { code: string }) {
 
   // When a timer hits zero: the active player auto-posts their draft; everyone else nudges the server shortly after.
   useEffect(() => {
-    if (!room?.phase_ends_at || !["bait", "reply", "judging"].includes(room.phase)) return;
+    if (!room?.phase_ends_at || !["bait", "reply", "judging", "result"].includes(room.phase)) return;
     const active =
       (room.phase === "bait" && seat === baiterSeat(room.turn)) ||
       (room.phase === "reply" && seat === replierSeat(room.turn));
@@ -112,19 +113,22 @@ export default function RoomClient({ code }: { code: string }) {
       {room.phase === "bait" && (
         <>
           <TopicBanner topic={room.topic} />
-          <Countdown endsAt={room.phase_ends_at} total={GAME.BAIT_SECONDS} now={now} />
+          <Countdown endsAt={room.phase_ends_at} total={room.bait_seconds} now={now} />
           {seat === baiterSeat(room.turn) ? (
+            <>
+            <Inspo key={`inspo-${phaseKey}`} topic={room.topic} />
             <Composer
               key={phaseKey}
               name={baiter}
-              placeholder={`Say something unhinged about ${room.topic}…`}
-              submitLabel="Post bait"
+              placeholder="Drop your hottest take…"
+              submitLabel="Post take"
               busy={busy}
               onDraft={(t) => (draft.current = t)}
               onSubmit={(text) => act({ type: "post_bait", text })}
             />
+            </>
           ) : (
-            <Typing name={baiter} label="is cooking up bait" />
+            <Typing name={baiter} label="is cooking up a hot take" />
           )}
         </>
       )}
@@ -133,7 +137,7 @@ export default function RoomClient({ code }: { code: string }) {
       {room.phase === "reply" && (
         <>
           <TopicBanner topic={room.topic} />
-          <Countdown endsAt={room.phase_ends_at} total={GAME.REPLY_SECONDS} now={now} />
+          <Countdown endsAt={room.phase_ends_at} total={room.reply_seconds} now={now} />
           <Post name={baiter} text={room.bait ?? ""} meta="just now" big />
           {seat === replierSeat(room.turn) ? (
             <Composer
@@ -173,10 +177,11 @@ export default function RoomClient({ code }: { code: string }) {
       {room.phase === "result" && room.last_turn && (
         <>
           <ResultCard turn={room.last_turn} />
-          <div className="flex justify-center pb-10">
+          <Countdown endsAt={room.phase_ends_at} total={room.reveal_seconds} now={now} label={room.turn + 1 >= TOTAL_TURNS ? "Final results in" : "Next round in"} />
+          <div className="flex justify-center py-6 pb-10">
             {seat ? (
               <Button disabled={busy} onClick={() => act({ type: "next" })}>
-                {room.turn + 1 >= TOTAL_TURNS ? "See final results →" : room.turn % 2 === 0 ? "Swap roles →" : "Next round →"}
+                {room.turn + 1 >= TOTAL_TURNS ? "See final results →" : "Next round (swap roles) →"}
               </Button>
             ) : (
               <p className="text-sm text-zinc-500">Waiting for the players…</p>
@@ -208,7 +213,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 function Header({ room, seat, role }: { room: Room; seat: "a" | "b" | null; role: string | null }) {
-  const round = Math.min(GAME.ROUNDS, Math.floor(room.turn / 2) + 1);
+  const round = Math.min(GAME.MATCH_ROUNDS, room.turn + 1);
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-800 bg-black/80 px-4 py-3 backdrop-blur">
       <div className="flex items-center justify-between">
@@ -222,7 +227,7 @@ function Header({ room, seat, role }: { room: Room; seat: "a" | "b" | null; role
         <div className="mt-3 flex items-center justify-between text-sm">
           <Score name={room.player_a} score={room.score_a} me={seat === "a"} />
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            {room.phase === "recap" ? "Final" : `Round ${round}/${GAME.ROUNDS}`}
+            {room.phase === "recap" ? "Final" : `Round ${round}/${GAME.MATCH_ROUNDS}`}
           </span>
           <Score name={room.player_b} score={room.score_b} me={seat === "b"} right />
         </div>
@@ -242,10 +247,33 @@ function Score({ name, score, me, right }: { name: string; score: number; me: bo
 }
 
 function TopicBanner({ topic }: { topic: string | null }) {
+  const cat = getCategory(topic);
   return (
-    <div className="border-b border-zinc-800 px-4 py-3 text-center">
-      <span className="text-xs uppercase tracking-[0.25em] text-zinc-500">Today&apos;s topic</span>
-      <p className="text-2xl font-black capitalize">{topic}</p>
+    <div className="border-b border-zinc-800 px-4 py-4 text-center">
+      <span className="text-xs uppercase tracking-[0.25em] text-zinc-500">Hot-take category</span>
+      <p className="text-3xl font-black">{cat.emoji} {cat.label}</p>
+      <p className="mt-1 text-sm text-zinc-400">{cat.prompt}</p>
+    </div>
+  );
+}
+
+/** "Stuck?" helper: shows a pre-written take from the category. Zero AI calls. */
+function Inspo({ topic }: { topic: string | null }) {
+  const takes = getCategory(topic).takes;
+  const [i, setI] = useState<number | null>(null);
+  if (!takes.length) return null;
+  return (
+    <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-2 text-sm">
+      <button
+        type="button"
+        onClick={() => setI((prev) => (prev === null ? Math.floor(Math.random() * takes.length) : (prev + 1) % takes.length))}
+        className="shrink-0 rounded-full border border-zinc-700 px-3 py-1 font-semibold text-zinc-300 hover:bg-zinc-800"
+      >
+        Inspo 🎲
+      </button>
+      <span className="text-zinc-400">
+        {i === null ? "Stuck? Get an example. (Copying it exactly kills your creativity score.)" : <i>“{takes[i]}”</i>}
+      </span>
     </div>
   );
 }

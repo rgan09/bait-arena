@@ -16,10 +16,13 @@ export async function getRoom(code: string): Promise<Room | null> {
 }
 
 /** Creates a room with a fresh unique code and seats player A. Returns the room + A's secret token. */
-export async function createRoom(nameA: string): Promise<{ room: Room; token: string }> {
+export async function createRoom(
+  nameA: string,
+  timers: { bait_seconds: number; reply_seconds: number; reveal_seconds: number },
+): Promise<{ room: Room; token: string }> {
   for (let attempt = 0; attempt < 6; attempt++) {
     const code = randomCode();
-    const { data, error } = await db().from("rooms").insert({ code, player_a: nameA }).select("*").single();
+    const { data, error } = await db().from("rooms").insert({ code, player_a: nameA, ...timers }).select("*").single();
     if (error?.code === "23505") continue; // code collision, try another
     if (error) throw error;
     const token = await createSeat(code, "a", nameA);

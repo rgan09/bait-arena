@@ -1,30 +1,26 @@
-// The AI pipeline for one turn. Layers, in order:
+// The judge — implements the JudgeRequest → JudgeResult contract in lib/types.ts.
+// Person B can tune the prompt (prompts.ts) or swap internals freely; callers only depend on `judge()`.
+//
+// Layers, in order:
 //   1. Local moderation  — instant, free, no AI call
 //   2. Gemini safety     — Google's own filter (surfaces as BlockedBySafety)
-//   3. Gemini judge      — scores + took_the_bait + foul + roasts, in ONE call (free tier is tight)
+//   3. Gemini judge      — all scores + flags + both roasts in ONE call (free tier is tight)
 //   4. Fallback          — if the AI is slow / rate-limited, the game still continues
-//
-// Next phase (streaming): roasts typing out live + the comment storm plug in after step 3.
 
-import type { JudgeResult } from "@/lib/types";
+import { isInspoCopy } from "@/lib/categories";
+import type { JudgeRequest, JudgeResult } from "@/lib/types";
 import { BlockedBySafety, generateJson } from "./gemini";
 import { moderate } from "./moderation";
 import { JUDGE_SCHEMA, JUDGE_SYSTEM, judgeUserPrompt } from "./prompts";
 
-export interface JudgeInput {
-  topic: string;
-  bait: string;
-  reply: string | null;
-  ignored: boolean;
-}
-
 const clamp = (n: unknown) => Math.max(0, Math.min(10, Math.round(Number(n) || 0)));
 const line = (s: unknown, fallback: string) =>
   typeof s === "string" && s.trim() ? s.trim().slice(0, 160) : fallback;
+const pick = <T,>(xs: readonly T[]) => xs[Math.floor(Math.random() * xs.length)];
 
 const EMPTY_BAIT_ROASTS = [
   "Posted nothing. The ultimate bait is no bait. Zero points though.",
-  "Stared at the keyboard for 45 seconds and chose peace.",
+  "Stared at the keyboard and chose peace.",
   "Silence. Bold. Scoreless.",
 ];
 const FALLBACK_ROASTS = [
@@ -32,73 +28,87 @@ const FALLBACK_ROASTS = [
   "Judge is touching grass right now. Scores are vibes-based.",
   "AI judge got ratioed by its own rate limit.",
 ];
-const pick = <T,>(xs: readonly T[]) => xs[Math.floor(Math.random() * xs.length)];
 
-function foulResult(reason: string, ignored: boolean): JudgeResult {
-  return {
-    provocation: 0, plausibility: 0, brevity: 0, creativity: 0,
-    composure: ignored ? 7 : 6, took_the_bait: false,
-    foul: true, foul_reason: reason,
-    roast_bait: "🚩 FOUL. Bait the topic, not the person.",
-    roast_reply: ignored ? "Correctly ignored. Touch grass award." : "Didn't stoop to that level.",
-    source: "ai",
-  };
+function heated(text: string) {
+  return text.length > 160 || /[A-Z]{6,}|!!|\bactually\b|\bliterally\b/.test(text);
 }
 
-export function fallbackResult(input: JudgeInput): JudgeResult {
-  if (!input.bait.trim()) {
+/** Never throws; used when the AI is unavailable, slow, or the bait is empty. */
+export function fallbackJudge(req: JudgeRequest): JudgeResult {
+  const ignored = req.response === null;
+  if (!req.bait.trim()) {
     return {
-      provocation: 0, plausibility: 0, brevity: 0, creativity: 0, composure: 7,
-      took_the_bait: false, foul: false, foul_reason: null,
-      roast_bait: pick(EMPTY_BAIT_ROASTS), roast_reply: "Nothing to reply to. Peaceful.", source: "fallback",
+      bait: { provocation: 0, plausibility: 0, creativity: 0 },
+      response: ignored ? null : { composure: 7, ratio: 2, took_bait: false },
+      roast: pick(EMPTY_BAIT_ROASTS),
+      roast_response: "Nothing to reply to. Peaceful.",
+      flagged_bait: false, flagged_response: false, source: "fallback",
     };
   }
-  // Rough heuristics so the fallback still feels fair.
-  const len = input.bait.length;
-  const reply = input.reply ?? "";
-  const heated = !input.ignored && (reply.length > 140 || /[A-Z]{6,}|!!|actually/i.test(reply));
+  const hot = !ignored && heated(req.response!);
   return {
-    provocation: 5, plausibility: 5, brevity: len < 60 ? 8 : len < 140 ? 6 : 3, creativity: 5,
-    composure: input.ignored ? 7 : heated ? 3 : 6, took_the_bait: heated,
-    foul: false, foul_reason: null,
-    roast_bait: pick(FALLBACK_ROASTS), roast_reply: heated ? "Typed with their whole chest." : "Unbothered. Moisturized.",
-    source: "fallback",
+    bait: { provocation: 5, plausibility: 5, creativity: isInspoCopy(req.bait) ? 2 : 5 },
+    response: ignored ? null : { composure: hot ? 3 : 6, ratio: hot ? 2 : 5, took_bait: hot },
+    roast: pick(FALLBACK_ROASTS),
+    roast_response: ignored ? "Scrolled past. Unbothered." : hot ? "Typed with their whole chest." : "Unbothered. Moisturized.",
+    flagged_bait: false, flagged_response: false, source: "fallback",
   };
 }
 
-export async function runJudging(input: JudgeInput, opts: { forceFallback?: boolean } = {}): Promise<JudgeResult> {
-  if (opts.forceFallback || !input.bait.trim()) return fallbackResult(input);
+export async function judge(req: JudgeRequest, opts: { forceFallback?: boolean } = {}): Promise<JudgeResult> {
+  if (opts.forceFallback || !req.bait.trim()) return fallbackJudge(req);
+  const ignored = req.response === null;
 
   // Layer 1: local moderation.
-  const baitCheck = moderate(input.bait);
-  if (baitCheck.foul) return foulResult(baitCheck.reason!, input.ignored);
-  const replyFoul = moderate(input.reply).foul;
+  const baitFlag = moderate(req.bait).foul;
+  const respFlag = !ignored && moderate(req.response).foul;
+  if (baitFlag) {
+    return {
+      bait: { provocation: 0, plausibility: 0, creativity: 0 },
+      response: ignored ? null : { composure: respFlag ? 0 : 8, ratio: 5, took_bait: false },
+      roast: "🚩 Foul. Bait the topic, not the person.",
+      roast_response: ignored ? "Correctly ignored. Touch-grass award." : "Didn't stoop to that level.",
+      flagged_bait: true, flagged_response: respFlag, source: "ai",
+    };
+  }
 
   // Layers 2 + 3: Gemini.
   try {
     const raw = await generateJson<Record<string, unknown>>({
       system: JUDGE_SYSTEM,
-      user: judgeUserPrompt(input),
+      user: judgeUserPrompt(req),
       schema: JUDGE_SCHEMA,
     });
-    const foul = raw.foul === true;
-    const result: JudgeResult = {
-      provocation: foul ? 0 : clamp(raw.provocation),
-      plausibility: foul ? 0 : clamp(raw.plausibility),
-      brevity: foul ? 0 : clamp(raw.brevity),
-      creativity: foul ? 0 : clamp(raw.creativity),
-      composure: replyFoul ? 0 : input.ignored ? 7 : clamp(raw.composure),
-      took_the_bait: !input.ignored && raw.took_the_bait === true,
-      foul,
-      foul_reason: foul ? line(raw.foul_reason, "Bait the topic, not the person.") : null,
-      roast_bait: line(raw.roast_bait, "No notes. Literally none."),
-      roast_reply: line(raw.roast_reply, input.ignored ? "Scrolled past like a pro." : "Okay."),
+    const flaggedBait = raw.flagged_bait === true;
+    const flaggedResp = respFlag || (!ignored && raw.flagged_response === true);
+    return {
+      bait: flaggedBait
+        ? { provocation: 0, plausibility: 0, creativity: 0 }
+        : {
+            provocation: clamp(raw.provocation),
+            plausibility: clamp(raw.plausibility),
+            // Copying an Inspo take word-for-word isn't creative.
+            creativity: isInspoCopy(req.bait) ? Math.min(2, clamp(raw.creativity)) : clamp(raw.creativity),
+          },
+      response: ignored
+        ? null
+        : {
+            composure: flaggedResp ? 0 : clamp(raw.composure),
+            ratio: flaggedResp ? 0 : clamp(raw.ratio),
+            took_bait: raw.took_bait === true,
+          },
+      roast: line(raw.roast, flaggedBait ? "🚩 Foul. Bait the topic, not the person." : "No notes. Literally none."),
+      roast_response: line(raw.roast_response, ignored ? "Scrolled past like a pro." : "Okay."),
+      flagged_bait: flaggedBait,
+      flagged_response: flaggedResp,
       source: "ai",
     };
-    return result;
   } catch (err) {
-    if (err instanceof BlockedBySafety) return foulResult("Blocked by the safety filter.", input.ignored);
+    if (err instanceof BlockedBySafety) {
+      const r = fallbackJudge(req);
+      return { ...r, bait: { provocation: 0, plausibility: 0, creativity: 0 }, flagged_bait: true, roast: "🚩 Blocked by the safety filter.", source: "ai" };
+    }
     console.error("[judge] falling back:", err);
-    return fallbackResult(input);
+    return fallbackJudge(req);
   }
 }

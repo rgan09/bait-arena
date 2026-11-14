@@ -1,7 +1,8 @@
 // The game engine: pure rules, no database, no AI, no network.
 // Given the current room + an action, it returns either a patch to apply or a reason it's not allowed.
 //
-//   lobby → bait (45s) → reply (30s) → judging → result → [next turn …] → recap
+//   lobby → bait → reply → judging → result (auto-advances) → [next round …] → recap
+// Timer lengths come from the room (normal or quick preset).
 
 import type { Action, JudgeResult, Room, Seat, TurnRecord } from "@/lib/types";
 import { GAME, TOTAL_TURNS } from "./config";
@@ -22,7 +23,7 @@ export type Transition =
 
 export const baiterSeat = (turn: number): Seat => (turn % 2 === 0 ? "a" : "b");
 export const replierSeat = (turn: number): Seat => (turn % 2 === 0 ? "b" : "a");
-export const roundOf = (turn: number) => Math.floor(turn / 2) + 1;
+export const roundOf = (turn: number) => turn + 1; // each round = one bait; roles swap every round
 export const nameOf = (room: Room, seat: Seat) => (seat === "a" ? room.player_a : room.player_b ?? "???");
 
 const at = (ms: number) => new Date(ms).toISOString();
@@ -55,7 +56,7 @@ export function startGame(room: Room, clock: Clock): Transition {
       bait: null,
       reply: null,
       ignored: false,
-      phase_ends_at: at(clock.now + (GAME.START_DELAY_SECONDS + GAME.BAIT_SECONDS) * 1000),
+      phase_ends_at: at(clock.now + (GAME.START_DELAY_SECONDS + room.bait_seconds) * 1000),
     },
     effects: [],
   };
@@ -80,7 +81,7 @@ export function applyAction(room: Room, seat: Seat | null, action: Action, clock
         if (!bait) return fail(400, "empty", "Write something first.");
         return {
           ok: true,
-          patch: { bait, phase: "reply", phase_ends_at: at(now + GAME.REPLY_SECONDS * 1000) },
+          patch: { bait, phase: "reply", phase_ends_at: at(now + room.reply_seconds * 1000) },
           effects: [],
         };
       }
@@ -119,8 +120,15 @@ export function applyAction(room: Room, seat: Seat | null, action: Action, clock
     }
 
     case "result": {
-      if (action.type !== "next") return fail(409, "wrong_phase", "Hit Next to continue.");
-      return nextTurn(room, clock);
+      if (action.type === "next") {
+        if (seat === null) return fail(403, "spectator", "Spectators can't skip.");
+        return nextTurn(room, clock);
+      }
+      if (action.type === "timeout") {
+        if (!expired(room, now)) return fail(409, "too_early", "Still showing the results.");
+        return nextTurn(room, clock);
+      }
+      return fail(409, "wrong_phase", "Hit Next to continue.");
     }
 
     case "recap":
@@ -129,7 +137,11 @@ export function applyAction(room: Room, seat: Seat | null, action: Action, clock
 }
 
 /** The judge came back: score the turn and show the result. */
-export function finishTurn(room: Room, result: JudgeResult): { patch: Partial<Room>; record: TurnRecord } | null {
+export function finishTurn(
+  room: Room,
+  result: JudgeResult,
+  now: number,
+): { patch: Partial<Room>; record: TurnRecord } | null {
   if (room.phase !== "judging") return null;
   const pts = pointsFor(result);
   const baiter = baiterSeat(room.turn);
@@ -151,7 +163,13 @@ export function finishTurn(room: Room, result: JudgeResult): { patch: Partial<Ro
   const scoreB = room.score_b + (baiter === "b" ? pts.bait : pts.reply);
   return {
     record,
-    patch: { phase: "result", phase_ends_at: null, last_turn: record, score_a: scoreA, score_b: scoreB },
+    patch: {
+      phase: "result",
+      phase_ends_at: at(now + room.reveal_seconds * 1000), // reveal auto-advances
+      last_turn: record,
+      score_a: scoreA,
+      score_b: scoreB,
+    },
   };
 }
 
@@ -160,8 +178,7 @@ function nextTurn(room: Room, clock: Clock): Transition {
   if (next >= TOTAL_TURNS) {
     return { ok: true, patch: { phase: "recap", phase_ends_at: null }, effects: [] };
   }
-  // Same topic for both turns of a round; new topic when a new round starts.
-  const topic = next % 2 === 0 ? clock.pickTopic(room.topic) : room.topic;
+  const topic = clock.pickTopic(room.topic); // fresh category every round
   return {
     ok: true,
     patch: {
@@ -171,13 +188,8 @@ function nextTurn(room: Room, clock: Clock): Transition {
       reply: null,
       ignored: false,
       phase: "bait",
-      phase_ends_at: at(clock.now + GAME.BAIT_SECONDS * 1000),
+      phase_ends_at: at(clock.now + room.bait_seconds * 1000),
     },
     effects: [],
   };
-}
-
-export function winnerOf(room: Room): Seat | "tie" {
-  if (room.score_a === room.score_b) return "tie";
-  return room.score_a > room.score_b ? "a" : "b";
 }

@@ -3,9 +3,10 @@
 
 import { after } from "next/server";
 import type { Action, Room, Seat, TurnRecord } from "@/lib/types";
-import { applyAction, finishTurn, realClock, startGame } from "./engine";
+import { getCategory } from "@/lib/categories";
+import { applyAction, finishTurn, realClock, startGame, TIMERS, type TimerPreset } from "./engine";
 import { createRoom, createSeat, findSeat, getRoom, insertTurn, listTurns, updateRoom } from "./db/rooms";
-import { runJudging } from "./ai/pipeline";
+import { judge } from "./ai/pipeline";
 import { HttpError } from "./http";
 
 const MAX_RACE_RETRIES = 4;
@@ -16,8 +17,8 @@ async function mustGetRoom(code: string): Promise<Room> {
   return room;
 }
 
-export async function createGame(name: string) {
-  const { room, token } = await createRoom(name);
+export async function createGame(name: string, preset: TimerPreset = "normal") {
+  const { room, token } = await createRoom(name, TIMERS[preset]);
   return { code: room.code, seat: "a" as Seat, token, room };
 }
 
@@ -84,15 +85,20 @@ export async function judgeTurn(code: string, turn: number, forceFallback = fals
   const snapshot = await getRoom(code);
   if (!snapshot || snapshot.phase !== "judging" || snapshot.turn !== turn) return;
 
-  const result = await runJudging(
-    { topic: snapshot.topic ?? "", bait: snapshot.bait ?? "", reply: snapshot.reply, ignored: snapshot.ignored },
+  const cat = getCategory(snapshot.topic);
+  const result = await judge(
+    {
+      topic: `${cat.label} — ${cat.prompt}`,
+      bait: snapshot.bait ?? "",
+      response: snapshot.ignored ? null : snapshot.reply ?? "",
+    },
     { forceFallback },
   );
 
   for (let i = 0; i < MAX_RACE_RETRIES; i++) {
     const room = await getRoom(code);
     if (!room || room.phase !== "judging" || room.turn !== turn) return; // already judged
-    const finished = finishTurn(room, result);
+    const finished = finishTurn(room, result, Date.now());
     if (!finished) return;
     const updated = await updateRoom(room, finished.patch);
     if (updated) {

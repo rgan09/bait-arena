@@ -2,91 +2,118 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { JudgeResult, Room } from "@/lib/types";
 import { applyAction, finishTurn, startGame, type Clock } from "./machine";
-import { TOTAL_TURNS } from "./config";
+import { TOTAL_TURNS, TIMERS } from "./config";
+import { matchWinner, pointsFor } from "./scoring";
 
 const T0 = Date.UTC(2026, 10, 14, 12, 0, 0);
-const clock = (now = T0): Clock => ({ now, pickTopic: (ex) => (ex === "socks" ? "cereal" : "socks") });
+const clock = (now = T0): Clock => ({ now, pickTopic: (ex) => (ex === "food" ? "sports" : "food") });
 
 function room(over: Partial<Room> = {}): Room {
   return {
     code: "ABCD", player_a: "alice", player_b: "bob", phase: "lobby", turn: 0, topic: null,
     bait: null, reply: null, ignored: false, phase_ends_at: null, score_a: 0, score_b: 0,
-    last_turn: null, version: 0, created_at: "", updated_at: "", ...over,
+    last_turn: null, ...TIMERS.normal, version: 0, created_at: "", updated_at: "", ...over,
   };
 }
 
-const judged: JudgeResult = {
-  provocation: 8, plausibility: 7, brevity: 9, creativity: 6, composure: 3,
-  took_the_bait: true, foul: false, foul_reason: null, roast_bait: "x", roast_reply: "y", source: "ai",
+const replied: JudgeResult = {
+  bait: { provocation: 8, plausibility: 7, creativity: 6 },
+  response: { composure: 3, ratio: 4, took_bait: true },
+  roast: "x", roast_response: "y", flagged_bait: false, flagged_response: false, source: "ai",
+};
+const ignored: JudgeResult = { ...replied, response: null };
+
+const apply = (r: Room, patch: Partial<Room>): Room => ({ ...r, ...patch, version: r.version + 1 });
+const patchOf = (t: ReturnType<typeof applyAction>) => {
+  assert.ok(t.ok, t.ok ? "" : t.message);
+  return t.patch;
 };
 
-function apply(r: Room, patch: Partial<Room>): Room {
-  return { ...r, ...patch, version: r.version + 1 };
-}
+describe("scoring (plan section 3 + ratio)", () => {
+  it("baiter gets the 3 sub-scores + 10 when the responder takes the bait", () => {
+    assert.deepEqual(pointsFor(replied), { bait: 8 + 7 + 6 + 10, reply: 3 * 2 + 4 });
+  });
+  it("ignoring is safe (14) but a calm clever dunk beats it", () => {
+    assert.equal(pointsFor(ignored).reply, 14);
+    const dunk = { ...replied, response: { composure: 9, ratio: 9, took_bait: false } };
+    assert.equal(pointsFor(dunk).reply, 27);
+    assert.equal(pointsFor(dunk).bait, 21); // no bonus
+  });
+  it("a flagged post scores 0 for its author only", () => {
+    assert.equal(pointsFor({ ...replied, flagged_bait: true }).bait, 0);
+    const p = pointsFor({ ...replied, flagged_response: true });
+    assert.equal(p.reply, 0);
+    assert.equal(p.bait, 31);
+  });
+  it("ties break on total composure", () => {
+    const turns = [
+      { replier: "bob", result: { ...replied, response: { composure: 9, ratio: 0, took_bait: false } } },
+      { replier: "alice", result: { ...replied, response: { composure: 2, ratio: 0, took_bait: false } } },
+    ];
+    assert.equal(matchWinner({ a: "alice", b: "bob" }, { a: 20, b: 20 }, turns), "b");
+    assert.equal(matchWinner({ a: "alice", b: "bob" }, { a: 21, b: 20 }, turns), "a");
+  });
+});
 
 describe("game engine", () => {
-  it("starts when B joins", () => {
-    const t = startGame(room(), clock());
-    assert.equal(t.ok && t.patch.phase, "bait");
-    assert.equal(t.ok && t.patch.topic, "socks");
+  it("starts on a category when B joins", () => {
+    const p = patchOf(startGame(room(), clock()));
+    assert.equal(p.phase, "bait");
+    assert.equal(p.topic, "food");
   });
 
-  it("only the baiter can bait, only the replier can reply", () => {
+  it("uses the room's timers (quick mode)", () => {
+    const r = room({ phase: "bait", ...TIMERS.quick });
+    const p = patchOf(applyAction(r, "a", { type: "post_bait", text: "cereal is soup" }, clock()));
+    assert.equal(new Date(p.phase_ends_at!).getTime() - T0, TIMERS.quick.reply_seconds * 1000);
+  });
+
+  it("only the baiter can bait, only the responder can reply", () => {
     const r = room({ phase: "bait" });
     assert.equal(applyAction(r, "b", { type: "post_bait", text: "hi" }, clock()).ok, false);
-    const t = applyAction(r, "a", { type: "post_bait", text: "  water is overrated  " }, clock());
-    assert.equal(t.ok && t.patch.bait, "water is overrated");
-    const r2 = apply(r, t.ok ? t.patch : {});
+    const r2 = apply(r, patchOf(applyAction(r, "a", { type: "post_bait", text: "  dark mode is overrated  " }, clock())));
+    assert.equal(r2.bait, "dark mode is overrated");
     assert.equal(applyAction(r2, "a", { type: "post_reply", text: "no" }, clock()).ok, false);
-    const t2 = applyAction(r2, "b", { type: "post_reply", text: "ok and?" }, clock());
-    assert.equal(t2.ok && t2.patch.phase, "judging");
-    assert.equal(t2.ok && t2.effects[0].type, "judge");
+    const t = applyAction(r2, "b", { type: "post_reply", text: "ok and?" }, clock());
+    assert.ok(t.ok && t.effects[0].type === "judge");
   });
 
   it("rejects early timeouts and accepts late ones", () => {
-    const ends = new Date(T0 + 30_000).toISOString();
-    const r = room({ phase: "reply", bait: "x", phase_ends_at: ends });
+    const r = room({ phase: "reply", bait: "x", phase_ends_at: new Date(T0 + 30_000).toISOString() });
     assert.equal(applyAction(r, "a", { type: "timeout" }, clock(T0 + 1000)).ok, false);
-    const t = applyAction(r, "a", { type: "timeout" }, clock(T0 + 31_000));
-    assert.equal(t.ok && t.patch.ignored, true);
+    assert.equal(patchOf(applyAction(r, "a", { type: "timeout" }, clock(T0 + 31_000))).ignored, true);
   });
 
-  it("scores the right seats and swaps roles", () => {
-    const r = room({ phase: "judging", turn: 0, topic: "socks", bait: "b", reply: "r" });
-    const f = finishTurn(r, judged)!;
-    // A baited: 8+7+9+6 + 10 bonus = 40. B replied: 3*4 = 12.
-    assert.equal(f.patch.score_a, 40);
-    assert.equal(f.patch.score_b, 12);
+  it("reveal auto-advances, swaps roles and draws a new category", () => {
+    const r = room({ phase: "judging", turn: 0, topic: "food", bait: "b", reply: "r" });
+    const f = finishTurn(r, replied, T0)!;
+    assert.equal(f.patch.score_a, 31); // A baited
+    assert.equal(f.patch.score_b, 10); // B replied: 3*2 + 4
     const r2 = apply(r, f.patch);
-    const n = applyAction(r2, "b", { type: "next" }, clock());
-    assert.equal(n.ok && n.patch.turn, 1);
-    assert.equal(n.ok && n.patch.topic, "socks"); // same round, same topic
-    // Turn 1: B is now the baiter.
-    const r3 = apply(r2, n.ok ? n.patch : {});
-    assert.equal(applyAction(r3, "b", { type: "post_bait", text: "socks are a scam" }, clock()).ok, true);
+    assert.equal(applyAction(r2, "a", { type: "timeout" }, clock(T0 + 1000)).ok, false); // too early
+    const p = patchOf(applyAction(r2, null, { type: "timeout" }, clock(T0 + 13_000))); // spectator nudge is fine
+    assert.equal(p.turn, 1);
+    assert.equal(p.topic, "sports");
+    const r3 = apply(r2, p);
+    assert.equal(applyAction(r3, "b", { type: "post_bait", text: "golf is a walk with homework" }, clock()).ok, true);
   });
 
-  it("fouls zero the baiter", () => {
-    const r = room({ phase: "judging", turn: 1 });
-    const f = finishTurn(r, { ...judged, foul: true })!;
-    assert.equal(f.patch.score_b, 0); // B baited on turn 1
-  });
-
-  it("plays a full best-of-3 to the recap", () => {
-    let r = apply(room(), (startGame(room(), clock()) as { patch: Partial<Room> }).patch);
+  it(`plays a full ${TOTAL_TURNS}-round match to the recap`, () => {
+    let r = apply(room(), patchOf(startGame(room(), clock())));
     for (let i = 0; i < TOTAL_TURNS; i++) {
       const baiter = r.turn % 2 === 0 ? "a" : "b";
-      const replier = baiter === "a" ? "b" : "a";
-      r = apply(r, (applyAction(r, baiter, { type: "post_bait", text: "bait" }, clock()) as { patch: Partial<Room> }).patch);
-      r = apply(r, (applyAction(r, replier, { type: "ignore" }, clock()) as { patch: Partial<Room> }).patch);
-      r = apply(r, finishTurn(r, judged)!.patch);
-      r = apply(r, (applyAction(r, "a", { type: "next" }, clock()) as { patch: Partial<Room> }).patch);
+      const responder = baiter === "a" ? "b" : "a";
+      r = apply(r, patchOf(applyAction(r, baiter, { type: "post_bait", text: "bait" }, clock())));
+      r = apply(r, patchOf(applyAction(r, responder, { type: "ignore" }, clock())));
+      r = apply(r, finishTurn(r, ignored, T0)!.patch);
+      r = apply(r, patchOf(applyAction(r, "a", { type: "next" }, clock())));
     }
     assert.equal(r.phase, "recap");
-    assert.equal(applyAction(r, "a", { type: "next" }, clock()).ok, false);
+    assert.equal(r.score_a, r.score_b); // symmetric match
   });
 
-  it("spectators can't play", () => {
+  it("spectators can't play or skip", () => {
     assert.equal(applyAction(room({ phase: "bait" }), null, { type: "post_bait", text: "x" }, clock()).ok, false);
+    assert.equal(applyAction(room({ phase: "result" }), null, { type: "next" }, clock()).ok, false);
   });
 });

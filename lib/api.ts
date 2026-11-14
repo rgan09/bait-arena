@@ -22,7 +22,8 @@ async function call<T>(path: string, init: RequestInit & { token?: string } = {}
 type Joined = { code: string; seat: Seat; token: string; room: Room };
 
 export const api = {
-  createRoom: (name: string) => call<Joined>("/rooms", { method: "POST", body: JSON.stringify({ name }) }),
+  createRoom: (name: string, quick = false) =>
+    call<Joined>("/rooms", { method: "POST", body: JSON.stringify({ name, quick }) }),
   joinRoom: (code: string, name: string) =>
     call<Joined>(`/rooms/${code}/join`, { method: "POST", body: JSON.stringify({ name }) }),
   getRoom: (code: string) => call<{ room: Room; turns: TurnRecord[] }>(`/rooms/${code}`),

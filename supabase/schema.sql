@@ -22,6 +22,11 @@ create table if not exists public.rooms (
   updated_at     timestamptz not null default now()
 );
 
+-- Migration (v2): per-room timers for normal vs quick (demo) mode. Safe to re-run.
+alter table public.rooms add column if not exists bait_seconds   int not null default 45;
+alter table public.rooms add column if not exists reply_seconds  int not null default 30;
+alter table public.rooms add column if not exists reveal_seconds int not null default 12;
+
 -- Secret per-player tokens. NOT readable by the browser — only the server (secret key) can see these.
 create table if not exists public.seats (
   room_code  text not null references public.rooms(code) on delete cascade,
