@@ -8,6 +8,16 @@ export interface Category {
   label: string;
   prompt: string; // shown under the category, tells the baiter what to aim for
   takes: string[];
+  /**
+   * Optional background the AI doesn't know (inside jokes, people, events). Sent to the judge and to
+   * Zen Mode, never shown on screen. Use it for local categories like the host club.
+   */
+  context?: string;
+}
+
+/** What the AI sees for a category: label, prompt, and any extra context. */
+export function categoryBrief(c: Category): string {
+  return c.context ? `${c.label}: ${c.prompt}\nContext: ${c.context}` : `${c.label}: ${c.prompt}`;
 }
 
 export const CATEGORIES: Category[] = [
@@ -170,6 +180,29 @@ export const CATEGORIES: Category[] = [
       "Speedrunners are just people who don't like games.",
       "The best part of any game is the menu music.",
     ],
+  },
+  {
+    id: "scope",
+    emoji: "♾️",
+    label: "Scope",
+    prompt: "A take about these people.",
+    takes: [
+      "Team ScopeGoats(John/Anjolie) are the best.",
+      "Max is best E-board member.",
+      "Scopers suck at krillion.",
+      "Theo's the best bounty hunter.",
+      "Most used open source framework is kubernetes.",
+      "ScopeGoats aren't in last place, the leaderboard is just upside down.",
+      "Theo is mid at bounty hunting and everyone's too scared to say it.",
+    ],
+    context:
+      "Scope is the club hosting this hackathon. Inside jokes everyone in the room knows: " +
+      "Max (an e-board member) is the club's favourite target and is easily made fun of. " +
+      "Theo is genuinely the best bounty hunter, but nobody will admit it. " +
+      "Team ScopeGoats (John and Anjolie) are currently in last place. " +
+      "The club loves Krillion but is honestly bad at it. " +
+      "Light teasing of Max, Theo, John, Anjolie or the ScopeGoats about club things is friendly banter, NOT an attack, " +
+      "so do not flag it. Still flag slurs, threats, sexual content, or jokes about anyone's appearance or identity.",
   },
 ];
 

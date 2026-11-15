@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { getCategory } from "@/lib/categories";
+import { categoryBrief, getCategory } from "@/lib/categories";
 import { addPoints, difficultyFor, ZEN, zenPoints } from "@/lib/zen";
 import { coachZen, fallbackBait } from "./zen";
 
@@ -44,6 +44,12 @@ describe("zen ai (no network)", () => {
     try { return await fn(); } finally { if (saved) process.env.GEMINI_API_KEY = saved; }
   };
   const base = { category: "food", difficulty: 1 as const, bait: "Cereal is a soup.", next_category: "music", next_difficulty: 2 as const };
+
+  it("club context reaches the AI but plain categories are unchanged", () => {
+    const scope = categoryBrief(getCategory("scope"));
+    assert.match(scope, /Context: .*Max/);
+    assert.equal(categoryBrief(getCategory("food")).includes("Context"), false);
+  });
 
   it("fallback bait comes from the category's pre-written takes", () => {
     const b = fallbackBait("food", 1);
