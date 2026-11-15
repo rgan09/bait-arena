@@ -1,4 +1,4 @@
-import type { Room, Seat, TurnRecord } from "@/lib/types";
+import type { Player, Room, Seat, TurnRecord } from "@/lib/types";
 import { db } from "./client";
 
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ"; // no I, L, O — easy to read off a projector
@@ -15,18 +15,22 @@ export async function getRoom(code: string): Promise<Room | null> {
   return data as Room | null;
 }
 
-/** Creates a room with a fresh unique code and seats player A. Returns the room + A's secret token. */
+/** Creates a room with a fresh unique code and seats the player as A. */
 export async function createRoom(
-  nameA: string,
+  player: Player,
   timers: { bait_seconds: number; reply_seconds: number; reveal_seconds: number },
-): Promise<{ room: Room; token: string }> {
+): Promise<Room> {
   for (let attempt = 0; attempt < 6; attempt++) {
     const code = randomCode();
-    const { data, error } = await db().from("rooms").insert({ code, player_a: nameA, ...timers }).select("*").single();
+    const { data, error } = await db()
+      .from("rooms")
+      .insert({ code, player_a: player.username, player_a_id: player.id, elo_a: player.elo, ...timers })
+      .select("*")
+      .single();
     if (error?.code === "23505") continue; // code collision, try another
     if (error) throw error;
-    const token = await createSeat(code, "a", nameA);
-    return { room: data as Room, token };
+    await createSeat(code, "a", player);
+    return data as Room;
   }
   throw new Error("Could not allocate a room code");
 }
@@ -46,28 +50,22 @@ export async function updateRoom(room: Room, patch: Partial<Room>): Promise<Room
   return (data?.[0] as Room) ?? null;
 }
 
-// ---------- seats (secret player tokens) ----------
+// ---------- seats (which player sits where; the primary key stops two people taking seat B) ----------
 
-export async function createSeat(code: string, seat: Seat, name: string): Promise<string> {
-  const { data, error } = await db()
-    .from("seats")
-    .insert({ room_code: code, seat, name })
-    .select("token")
-    .single();
+export async function createSeat(code: string, seat: Seat, player: Player): Promise<void> {
+  const { error } = await db().from("seats").insert({ room_code: code, seat, name: player.username, player_id: player.id });
   if (error) throw error;
-  return data.token as string;
 }
 
-export async function findSeat(code: string, token: string): Promise<{ seat: Seat; name: string } | null> {
-  if (!/^[0-9a-f-]{36}$/i.test(token)) return null;
+export async function findSeat(code: string, playerId: string): Promise<Seat | null> {
   const { data, error } = await db()
     .from("seats")
-    .select("seat, name")
+    .select("seat")
     .eq("room_code", code)
-    .eq("token", token)
+    .eq("player_id", playerId)
     .maybeSingle();
   if (error) throw error;
-  return (data as { seat: Seat; name: string }) ?? null;
+  return (data?.seat as Seat) ?? null;
 }
 
 // ---------- turns (history) ----------

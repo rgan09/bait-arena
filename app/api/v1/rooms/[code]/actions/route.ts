@@ -7,7 +7,7 @@ export const maxDuration = 30;
 
 /**
  * POST /api/v1/rooms/:code/actions
- * Headers: Authorization: Bearer <token>   (optional for "timeout")
+ * Headers: Authorization: Bearer <player token>   (optional for "timeout")
  * Body: { type: "post_bait" | "post_reply", text } | { type: "ignore" | "timeout" | "next" }
  * → { room }
  */

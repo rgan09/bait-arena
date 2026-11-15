@@ -1,5 +1,5 @@
 // Gateway helpers shared by every /api/v1 route: errors, validation, auth, rate limiting.
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 import type { ZodType } from "zod";
 
 export class HttpError extends Error {
@@ -13,6 +13,7 @@ export const ok = <T,>(data: T, status = 200) => NextResponse.json(data, { statu
 /** Wraps a route handler so thrown HttpErrors become clean JSON errors: { error: { code, message } } */
 export function handle<A extends unknown[]>(fn: (...args: A) => Promise<Response>) {
   return async (...args: A): Promise<Response> => {
+    await connection(); // API responses are always live — never prerendered or cached
     try {
       return await fn(...args);
     } catch (err) {

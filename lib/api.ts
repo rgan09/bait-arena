@@ -1,6 +1,6 @@
 "use client";
 // Typed client for our own /api/v1 — the only way the UI changes game state.
-import type { Action, PlayerSession, Room, Seat, TurnRecord } from "./types";
+import type { Action, Player, Room, StoredPlayer, TurnRecord } from "./types";
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string) {
@@ -19,36 +19,35 @@ async function call<T>(path: string, init: RequestInit & { token?: string } = {}
   return body as T;
 }
 
-type Joined = { code: string; seat: Seat; token: string; room: Room };
+const post = (body?: unknown) => ({ method: "POST", body: JSON.stringify(body ?? {}) });
 
 export const api = {
-  createRoom: (name: string, quick = false) =>
-    call<Joined>("/rooms", { method: "POST", body: JSON.stringify({ name, quick }) }),
-  joinRoom: (code: string, name: string) =>
-    call<Joined>(`/rooms/${code}/join`, { method: "POST", body: JSON.stringify({ name }) }),
+  createPlayer: (username: string) => call<{ player: Player; token: string }>("/players", post({ username })),
+  me: (token: string) => call<{ player: Player }>("/players/me", { token }),
+  leaderboard: () => call<{ players: Player[] }>("/leaderboard"),
+  createRoom: (token: string, quick = false) => call<{ room: Room }>("/rooms", { ...post({ quick }), token }),
+  joinRoom: (token: string, code: string) => call<{ room: Room }>(`/rooms/${code}/join`, { ...post(), token }),
   getRoom: (code: string) => call<{ room: Room; turns: TurnRecord[] }>(`/rooms/${code}`),
   act: (code: string, action: Action, token?: string) =>
-    call<{ room: Room }>(`/rooms/${code}/actions`, { method: "POST", body: JSON.stringify(action), token }),
+    call<{ room: Room }>(`/rooms/${code}/actions`, { ...post(action), token }),
+  rematch: (token: string, code: string) => call<{ code: string }>(`/rooms/${code}/rematch`, { ...post(), token }),
 };
 
-// ---------- local player session ----------
+// ---------- the player saved on this device ----------
 
-const key = (code: string) => `bait:session:${code}`;
+const KEY = "bait:player";
 
-export function saveSession(s: PlayerSession) {
-  try { localStorage.setItem(key(s.code), JSON.stringify(s)); } catch {}
-}
-export function loadSession(code: string): PlayerSession | null {
+export function loadPlayer(): StoredPlayer | null {
   try {
-    const raw = localStorage.getItem(key(code));
-    return raw ? (JSON.parse(raw) as PlayerSession) : null;
+    const raw = localStorage.getItem(KEY);
+    return raw ? (JSON.parse(raw) as StoredPlayer) : null;
   } catch {
     return null;
   }
 }
-export function rememberName(name: string) {
-  try { localStorage.setItem("bait:name", name); } catch {}
+export function savePlayer(p: StoredPlayer) {
+  try { localStorage.setItem(KEY, JSON.stringify(p)); } catch {}
 }
-export function savedName(): string {
-  try { return localStorage.getItem("bait:name") ?? ""; } catch { return ""; }
+export function forgetPlayer() {
+  try { localStorage.removeItem(KEY); } catch {}
 }

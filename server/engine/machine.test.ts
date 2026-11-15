@@ -4,6 +4,8 @@ import type { JudgeResult, Room } from "@/lib/types";
 import { applyAction, finishTurn, startGame, type Clock } from "./machine";
 import { TOTAL_TURNS, TIMERS } from "./config";
 import { matchWinner, pointsFor } from "./scoring";
+import { expectedScore, updateElo } from "./elo";
+import { tierFor } from "@/lib/tiers";
 
 const T0 = Date.UTC(2026, 10, 14, 12, 0, 0);
 const clock = (now = T0): Clock => ({ now, pickTopic: (ex) => (ex === "food" ? "sports" : "food") });
@@ -12,7 +14,8 @@ function room(over: Partial<Room> = {}): Room {
   return {
     code: "ABCD", player_a: "alice", player_b: "bob", phase: "lobby", turn: 0, topic: null,
     bait: null, reply: null, ignored: false, phase_ends_at: null, score_a: 0, score_b: 0,
-    last_turn: null, ...TIMERS.normal, version: 0, created_at: "", updated_at: "", ...over,
+    last_turn: null, ...TIMERS.normal, player_a_id: "pa", player_b_id: "pb", elo_a: 1000, elo_b: 1000,
+    winner: null, elo_result: null, rematch_code: null, version: 0, created_at: "", updated_at: "", ...over,
   };
 }
 
@@ -115,5 +118,26 @@ describe("game engine", () => {
   it("spectators can't play or skip", () => {
     assert.equal(applyAction(room({ phase: "bait" }), null, { type: "post_bait", text: "x" }, clock()).ok, false);
     assert.equal(applyAction(room({ phase: "result" }), null, { type: "next" }, clock()).ok, false);
+  });
+});
+
+describe("elo + tiers", () => {
+  it("equal players swap 16 points (K=32)", () => {
+    assert.deepEqual(updateElo(1000, 1000, 1), { a: 1016, b: 984 });
+    assert.deepEqual(updateElo(1000, 1000, 0.5), { a: 1000, b: 1000 });
+  });
+  it("beating a stronger player pays more", () => {
+    assert.ok(expectedScore(1000, 1200) < 0.25);
+    const r = updateElo(1000, 1200, 1);
+    assert.equal(r.a - 1000, 1200 - r.b); // zero-sum
+    assert.ok(r.a - 1000 > 16);
+  });
+  it("maps Elo to the plan's tiers", () => {
+    assert.equal(tierFor(850).name, "Grass Toucher");
+    assert.equal(tierFor(900).name, "Lurker");
+    assert.equal(tierFor(1000).name, "Reply Guy");
+    assert.equal(tierFor(1199).name, "Quote Tweeter");
+    assert.equal(tierFor(1250).name, "Ratio Lord");
+    assert.equal(tierFor(1300).name, "Chronically Online 👑");
   });
 });

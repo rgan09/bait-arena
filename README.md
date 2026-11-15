@@ -33,16 +33,27 @@ Judging runs in the background (`after()`), and if Gemini is slow or rate-limite
 
 ## API (v1)
 
+Auth: pick a username once → you get a secret token (kept in localStorage) → send `Authorization: Bearer <token>`.
+
 | Method | Path | Body | Auth |
 |---|---|---|---|
-| POST | `/api/v1/rooms` | `{ name }` | — |
-| POST | `/api/v1/rooms/:code/join` | `{ name }` | — |
-| GET | `/api/v1/rooms/:code` | — | — |
-| POST | `/api/v1/rooms/:code/actions` | `{ type: "post_bait" \| "post_reply", text }` or `{ type: "ignore" \| "timeout" \| "next" }` | `Bearer <token>` |
+| POST | `/api/v1/players` | `{ username }` → `{ player, token }` | — |
+| GET | `/api/v1/players/me` | → `{ player }` | Bearer |
+| GET | `/api/v1/leaderboard` | → `{ players }` (top 20 by Elo) | — |
+| POST | `/api/v1/rooms` | `{ quick? }` → `{ room }` | Bearer |
+| POST | `/api/v1/rooms/:code/join` | → `{ room }` | Bearer |
+| GET | `/api/v1/rooms/:code` | → `{ room, turns }` | — |
+| POST | `/api/v1/rooms/:code/actions` | `{ type: "post_bait" \| "post_reply", text }` or `{ type: "ignore" \| "timeout" \| "next" }` | Bearer (not for timeout) |
+| POST | `/api/v1/rooms/:code/rematch` | → `{ code }` (second caller is auto-joined) | Bearer |
+| POST | `/api/judge` | `JudgeRequest` → `JudgeResult` (see `lib/types.ts`) | — |
 | GET | `/api/v1/health` | — | — |
-| POST | `/api/judge` | `JudgeRequest { topic, bait, response \| null }` → `JudgeResult` (see `lib/types.ts`) | — |
 
 Errors always look like `{ "error": { "code": "not_your_turn", "message": "…" } }`.
+
+## Ranked
+
+Everyone starts at 1000 Elo. When a match ends the server applies standard Elo (K = 32) exactly once.
+Tiers: Grass Toucher (<900) → Lurker → Reply Guy (1000) → Quote Tweeter → Ratio Lord → Chronically Online 👑 (1300+).
 
 ## Setup
 

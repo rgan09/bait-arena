@@ -5,10 +5,14 @@ import { Composer } from "@/components/Composer";
 import { Avatar, Button, Countdown, Pill, Post } from "@/components/feed";
 import { Recap } from "@/components/Recap";
 import { ResultCard } from "@/components/ResultCard";
+import { JoinQR } from "@/components/JoinQR";
+import { TierBadge } from "@/components/TierBadge";
+import { UsernameForm } from "@/components/UsernameForm";
+import { usePlayer } from "@/hooks/usePlayer";
 import { useNow, useRoom } from "@/hooks/useRoom";
-import { api, ApiError, loadSession, rememberName, saveSession, savedName } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { getCategory } from "@/lib/categories";
-import type { Action, PlayerSession, Room } from "@/lib/types";
+import type { Action, Room, Seat, StoredPlayer } from "@/lib/types";
 import { GAME, TOTAL_TURNS } from "@/server/engine/config";
 
 const baiterSeat = (turn: number) => (turn % 2 === 0 ? "a" : "b");
@@ -19,21 +23,20 @@ export default function RoomClient({ code }: { code: string }) {
   const { room, turns, error, accept } = useRoom(code);
   const now = useNow();
 
-  const [session, setSession] = useState<PlayerSession | null>(null);
+  const { player, register } = usePlayer();
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const draft = useRef("");
   const fired = useRef("");
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- reading localStorage after hydration
-  useEffect(() => setSession(loadSession(code)), [code]);
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(null), 3500);
     return () => clearTimeout(id);
   }, [toast]);
 
-  const seat = session?.seat ?? null;
+  // My seat comes from the room itself: which side has my player id.
+  const seat: Seat | null = !room || !player ? null : room.player_a_id === player.id ? "a" : room.player_b_id === player.id ? "b" : null;
   const phaseKey = room ? `${room.turn}:${room.phase}` : "";
   useEffect(() => { draft.current = ""; }, [phaseKey]);
 
@@ -41,7 +44,7 @@ export default function RoomClient({ code }: { code: string }) {
     async (action: Action, silent = false) => {
       setBusy(true);
       try {
-        const res = await api.act(code, action, session?.token);
+        const res = await api.act(code, action, player?.token);
         accept(res.room);
       } catch (e) {
         if (!silent) setToast(e instanceof ApiError ? e.message : "Network hiccup. Try again.");
@@ -49,7 +52,7 @@ export default function RoomClient({ code }: { code: string }) {
         setBusy(false);
       }
     },
-    [code, session, accept],
+    [code, player, accept],
   );
 
   // When a timer hits zero: the active player auto-posts their draft; everyone else nudges the server shortly after.
@@ -96,15 +99,15 @@ export default function RoomClient({ code }: { code: string }) {
 
       {/* ---------- LOBBY ---------- */}
       {room.phase === "lobby" && (
-        !session && !room.player_b ? (
-          <JoinInline code={code} onJoined={(s) => { setSession(s); }} accept={accept} />
+        !seat && !room.player_b ? (
+          <JoinInline code={code} player={player} register={register} accept={accept} host={room.player_a} />
         ) : (
-          <div className="space-y-4 px-4 py-12 text-center">
-            <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">Room code</p>
-            <p className="font-mono text-7xl font-black tracking-[0.2em] text-sky-400">{room.code}</p>
-            <p className="text-zinc-400">Tell your opponent to open the site and enter this code.</p>
+          <div className="space-y-4 px-4 py-10 text-center">
+            <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">Scan to join, or use the code</p>
+            <JoinQR code={room.code} />
+            <p className="font-mono text-6xl font-black tracking-[0.2em] text-sky-400">{room.code}</p>
             <CopyLink code={room.code} />
-            <p className="animate-pulse pt-6 text-zinc-500">Waiting for an opponent…</p>
+            <p className="animate-pulse pt-4 text-zinc-500">Waiting for an opponent…</p>
           </div>
         )
       )}
@@ -191,7 +194,7 @@ export default function RoomClient({ code }: { code: string }) {
       )}
 
       {/* ---------- RECAP ---------- */}
-      {room.phase === "recap" && <Recap room={room} turns={turns} />}
+      {room.phase === "recap" && <Recap room={room} turns={turns} seat={seat} token={player?.token ?? null} />}
 
       {toast && (
         <div className="fixed inset-x-0 bottom-6 z-50 mx-auto w-fit rounded-full bg-rose-500 px-5 py-2 text-sm font-semibold text-white shadow-lg">
@@ -225,22 +228,25 @@ function Header({ room, seat, role }: { room: Room; seat: "a" | "b" | null; role
       </div>
       {room.player_b && (
         <div className="mt-3 flex items-center justify-between text-sm">
-          <Score name={room.player_a} score={room.score_a} me={seat === "a"} />
+          <Score name={room.player_a} score={room.score_a} me={seat === "a"} elo={room.elo_a} />
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
             {room.phase === "recap" ? "Final" : `Round ${round}/${GAME.MATCH_ROUNDS}`}
           </span>
-          <Score name={room.player_b} score={room.score_b} me={seat === "b"} right />
+          <Score name={room.player_b} score={room.score_b} me={seat === "b"} elo={room.elo_b} right />
         </div>
       )}
     </header>
   );
 }
 
-function Score({ name, score, me, right }: { name: string; score: number; me: boolean; right?: boolean }) {
+function Score({ name, score, me, elo, right }: { name: string; score: number; me: boolean; elo: number | null; right?: boolean }) {
   return (
-    <div className={`flex items-center gap-2 ${right ? "flex-row-reverse" : ""}`}>
+    <div className={`flex items-center gap-2 ${right ? "flex-row-reverse text-right" : ""}`}>
       <Avatar name={name} size={28} />
-      <span className={`max-w-24 truncate ${me ? "font-bold text-sky-300" : "text-zinc-300"}`}>{name}{me ? " (you)" : ""}</span>
+      <div className="min-w-0">
+        <p className={`max-w-28 truncate leading-tight ${me ? "font-bold text-sky-300" : "text-zinc-300"}`}>{name}{me ? " (you)" : ""}</p>
+        <TierBadge elo={elo} />
+      </div>
       <span className="font-mono text-lg font-bold">{score}</span>
     </div>
   );
@@ -311,46 +317,48 @@ function CopyLink({ code }: { code: string }) {
 }
 
 function JoinInline({
-  code, onJoined, accept,
-}: { code: string; onJoined: (s: PlayerSession) => void; accept: (r: Room) => void }) {
-  const [name, setName] = useState("");
+  code, player, register, accept, host,
+}: {
+  code: string;
+  player: StoredPlayer | null;
+  register: (username: string) => Promise<StoredPlayer>;
+  accept: (r: Room) => void;
+  host: string;
+}) {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- reading localStorage after hydration
-  useEffect(() => setName(savedName()), []);
+
+  async function join(p: StoredPlayer) {
+    const { room } = await api.joinRoom(p.token, code);
+    accept(room);
+  }
 
   return (
-    <form
-      className="space-y-4 px-6 py-12 text-center"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        setBusy(true);
-        setErr(null);
-        try {
-          const res = await api.joinRoom(code, name);
-          const s: PlayerSession = { code, seat: res.seat, name, token: res.token };
-          saveSession(s);
-          rememberName(name);
-          onJoined(s);
-          accept(res.room);
-        } catch (e) {
-          setErr(e instanceof ApiError ? e.message : "Couldn't join.");
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <h2 className="text-2xl font-black">You&apos;ve been challenged 🎣</h2>
-      <input
-        autoFocus
-        value={name}
-        maxLength={GAME.NAME_MAX_CHARS}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Your nickname"
-        className="w-full rounded-full border border-zinc-700 bg-zinc-900 px-5 py-3 text-center text-lg focus:border-sky-500 focus:outline-none"
-      />
-      {err && <p className="text-sm text-rose-400">{err}</p>}
-      <Button type="submit" disabled={!name.trim() || busy}>{busy ? "Joining…" : "Join the battle"}</Button>
-    </form>
+    <div className="space-y-5 px-6 py-12 text-center">
+      <h2 className="text-2xl font-black">@{host} challenged you 🎣</h2>
+      {player ? (
+        <>
+          <Button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setErr(null);
+              try {
+                await join(player);
+              } catch (e) {
+                setErr(e instanceof ApiError ? e.message : "Couldn't join.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Joining…" : `Join as @${player.username}`}
+          </Button>
+          {err && <p className="text-sm text-rose-400">{err}</p>}
+        </>
+      ) : (
+        <UsernameForm cta="Join the battle" onSubmit={async (u) => join(await register(u))} />
+      )}
+    </div>
   );
 }

@@ -2,14 +2,14 @@ import { z } from "zod";
 import { GAME } from "./engine/config";
 
 export const NameSchema = z
-  .string({ message: "Pick a nickname." })
+  .string({ message: "Pick a username." })
   .trim()
-  .min(1, "Pick a nickname.")
-  .max(GAME.NAME_MAX_CHARS, `Nicknames are max ${GAME.NAME_MAX_CHARS} characters.`)
-  .regex(/^[\p{L}\p{N} _.\-]+$/u, "Letters, numbers, spaces, _ . - only.");
+  .min(2, "Usernames need at least 2 characters.")
+  .max(GAME.NAME_MAX_CHARS, `Usernames are max ${GAME.NAME_MAX_CHARS} characters.`)
+  .regex(/^[A-Za-z0-9_.]+$/, "Letters, numbers, _ and . only (no spaces).");
 
-export const CreateRoomBody = z.object({ name: NameSchema, quick: z.boolean().optional() });
-export const JoinRoomBody = z.object({ name: NameSchema });
+export const CreatePlayerBody = z.object({ username: NameSchema });
+export const CreateRoomBody = z.object({ quick: z.boolean().optional() });
 
 const Text = z.string().max(2000, "Way too long.");
 

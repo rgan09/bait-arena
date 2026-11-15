@@ -1,36 +1,40 @@
 "use client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/feed";
-import { api, ApiError, rememberName, saveSession, savedName } from "@/lib/api";
-import { GAME } from "@/server/engine/config";
+import { useState } from "react";
+import { Avatar, Button } from "@/components/feed";
+import { TierBadge } from "@/components/TierBadge";
+import { UsernameForm } from "@/components/UsernameForm";
+import { usePlayer } from "@/hooks/usePlayer";
+import { api, ApiError } from "@/lib/api";
 
-const TIERS = ["Grass Toucher", "Lurker", "Reply Guy", "Quote Tweeter", "Ratio Lord", "Chronically Online 👑"];
 const HOW = [
   ["🎲", "Draw a category", "Food crimes, LA life, texting etiquette…"],
   ["🔥", "Post a hot take", "Make people angry. Sound sincere."],
   ["🧊", "Clap back or ignore", "Win by dunking calmly. Lose by taking the bait."],
 ];
 
+// Solo modes are built by Person B at these routes.
+const MODES = [
+  { href: "/zen", icon: "🧘", title: "Zen Mode", sub: "AI baits you. Don't bite." },
+  { href: "/school", icon: "🎓", title: "Bait School", sub: "Daily challenge + lessons" },
+];
+
 export default function Home() {
   const router = useRouter();
-  const [name, setName] = useState("");
+  const { player, profile, ready, register, signOut } = usePlayer();
   const [code, setCode] = useState("");
+  const [quick, setQuick] = useState(false);
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [canWatch, setCanWatch] = useState(false);
-  const [quick, setQuick] = useState(false);
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- reading localStorage after hydration
-  useEffect(() => setName(savedName()), []);
 
   async function create() {
+    if (!player) return;
     setBusy("create"); setErr(null);
     try {
-      const res = await api.createRoom(name, quick);
-      saveSession({ code: res.code, seat: res.seat, name: name.trim(), token: res.token });
-      rememberName(name.trim());
-      router.push(`/room/${res.code}`);
+      const { room } = await api.createRoom(player.token, quick);
+      router.push(`/room/${room.code}`);
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : "Couldn't create a room.");
       setBusy(null);
@@ -38,12 +42,11 @@ export default function Home() {
   }
 
   async function join() {
+    if (!player) return;
     const c = code.trim().toUpperCase();
     setBusy("join"); setErr(null); setCanWatch(false);
     try {
-      const res = await api.joinRoom(c, name);
-      saveSession({ code: c, seat: res.seat, name: name.trim(), token: res.token });
-      rememberName(name.trim());
+      await api.joinRoom(player.token, c);
       router.push(`/room/${c}`);
     } catch (e) {
       if (e instanceof ApiError && e.code === "room_full") setCanWatch(true);
@@ -52,63 +55,88 @@ export default function Home() {
     }
   }
 
-  const nameOk = name.trim().length > 0;
-
   return (
-    <main className="flex min-h-screen items-center justify-center bg-black px-5 text-zinc-100">
-      <div className="w-full max-w-md space-y-8 py-12">
-        <div className="space-y-3 text-center">
-          <div className="text-6xl">🎣</div>
+    <main className="min-h-screen bg-black px-5 text-zinc-100">
+      <div className="mx-auto w-full max-w-md space-y-6 py-10">
+        <div className="flex items-center justify-between">
+          <span className="text-lg font-black">🎣 Bait Arena</span>
+          <Link href="/leaderboard" className="rounded-full border border-zinc-700 px-3 py-1 text-sm font-semibold text-zinc-300 hover:bg-zinc-800">
+            🏆 Leaderboard
+          </Link>
+        </div>
+
+        <div className="space-y-2 pt-4 text-center">
           <h1 className="text-5xl font-black tracking-tight">Bait Arena</h1>
-          <p className="text-zinc-400">1v1 hot-take battles. Post the spiciest take you can. Clap back without losing your cool. An AI judge roasts you both.</p>
+          <p className="text-zinc-400">
+            1v1 hot-take battles. Post the spiciest take you can. Clap back without losing your cool. An AI judge roasts you both.
+          </p>
         </div>
 
-        <input
-          value={name}
-          maxLength={GAME.NAME_MAX_CHARS}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Your nickname"
-          className="w-full rounded-full border border-zinc-700 bg-zinc-900 px-5 py-3 text-center text-lg focus:border-sky-500 focus:outline-none"
-        />
+        {!ready ? null : !player ? (
+          <section className="space-y-4 rounded-3xl border border-zinc-800 p-5">
+            <p className="text-center font-bold">Pick your username</p>
+            <UsernameForm onSubmit={register} />
+          </section>
+        ) : (
+          <>
+            <section className="flex items-center gap-3 rounded-3xl border border-zinc-800 p-4">
+              <Avatar name={player.username} size={44} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-bold">@{player.username}</p>
+                <p className="text-xs text-zinc-500">
+                  {profile ? `${profile.wins}W · ${profile.losses}L${profile.ties ? ` · ${profile.ties}T` : ""}` : "…"}
+                </p>
+              </div>
+              <TierBadge elo={profile?.elo} showElo size="md" />
+              <button onClick={signOut} className="text-xs text-zinc-600 underline hover:text-zinc-400" title="Use a different username on this device">
+                not you?
+              </button>
+            </section>
 
-        <div className="space-y-3 rounded-3xl border border-zinc-800 p-5">
-          <p className="text-sm font-semibold text-zinc-400">Start a battle</p>
-          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-zinc-900 px-4 py-3 text-sm">
-            <span>
-              <b className="text-zinc-200">⚡ Quick mode</b>
-              <span className="block text-zinc-500">25s takes · 15s replies. Best for demos.</span>
-            </span>
-            <input type="checkbox" checked={quick} onChange={(e) => setQuick(e.target.checked)} className="h-5 w-5 accent-sky-500" />
-          </label>
-          <div className="flex justify-center">
-            <Button disabled={!nameOk || busy !== null} onClick={create}>
-              {busy === "create" ? "Creating…" : "Create room"}
-            </Button>
-          </div>
+            <section className="space-y-3 rounded-3xl border border-sky-500/30 bg-sky-500/5 p-5">
+              <p className="text-sm font-bold text-sky-300">⚔️ Ranked 1v1 battle</p>
+              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-zinc-900 px-4 py-3 text-sm">
+                <span>
+                  <b className="text-zinc-200">⚡ Quick mode</b>
+                  <span className="block text-zinc-500">25s takes · 15s replies. Best for demos.</span>
+                </span>
+                <input type="checkbox" checked={quick} onChange={(e) => setQuick(e.target.checked)} className="h-5 w-5 accent-sky-500" />
+              </label>
+              <div className="flex justify-center">
+                <Button disabled={busy !== null} onClick={create}>{busy === "create" ? "Creating…" : "Create room"}</Button>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-zinc-600">
+                <div className="h-px flex-1 bg-zinc-800" /> or join with a code <div className="h-px flex-1 bg-zinc-800" />
+              </div>
+              <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); join(); }}>
+                <input
+                  value={code}
+                  maxLength={4}
+                  onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ""))}
+                  placeholder="ABCD"
+                  className="w-full rounded-full border border-zinc-700 bg-zinc-900 px-5 py-2 text-center font-mono text-xl tracking-[0.4em] focus:border-sky-500 focus:outline-none"
+                />
+                <Button type="submit" disabled={code.length !== 4 || busy !== null}>{busy === "join" ? "…" : "Join"}</Button>
+              </form>
+              {canWatch && (
+                <button className="w-full text-sm text-sky-400 underline" onClick={() => router.push(`/room/${code}`)}>
+                  Watch as a spectator instead
+                </button>
+              )}
+              {err && <p className="text-center text-sm text-rose-400">{err}</p>}
+            </section>
+          </>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          {MODES.map((m) => (
+            <Link key={m.href} href={m.href} className="rounded-3xl border border-zinc-800 p-4 transition hover:border-zinc-600 hover:bg-zinc-900">
+              <div className="text-2xl">{m.icon}</div>
+              <p className="mt-1 font-bold">{m.title}</p>
+              <p className="text-xs text-zinc-500">{m.sub}</p>
+            </Link>
+          ))}
         </div>
-
-        <div className="space-y-3 rounded-3xl border border-zinc-800 p-5">
-          <p className="text-sm font-semibold text-zinc-400">Got a code?</p>
-          <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); join(); }}>
-            <input
-              value={code}
-              maxLength={4}
-              onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ""))}
-              placeholder="ABCD"
-              className="w-full rounded-full border border-zinc-700 bg-zinc-900 px-5 py-2 text-center font-mono text-xl tracking-[0.4em] focus:border-sky-500 focus:outline-none"
-            />
-            <Button type="submit" disabled={!nameOk || code.length !== 4 || busy !== null}>
-              {busy === "join" ? "…" : "Join"}
-            </Button>
-          </form>
-          {canWatch && (
-            <button className="w-full text-sm text-sky-400 underline" onClick={() => router.push(`/room/${code}`)}>
-              Watch as a spectator instead
-            </button>
-          )}
-        </div>
-
-        {err && <p className="text-center text-sm text-rose-400">{err}</p>}
 
         <div className="grid grid-cols-3 gap-2 text-center">
           {HOW.map(([icon, title, sub]) => (
@@ -120,11 +148,7 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="text-center text-xs text-zinc-600">
-          <p className="mb-2 uppercase tracking-widest">Ranks</p>
-          <p>{TIERS.join(" → ")}</p>
-          <p className="mt-4">Bait the topic, not the person. Slurs and attacks score zero.</p>
-        </div>
+        <p className="text-center text-xs text-zinc-600">Bait the topic, not the person. Slurs and attacks score zero.</p>
       </div>
     </main>
   );

@@ -1,11 +1,10 @@
-import { joinGame } from "@/server/game";
-import { handle, ok, parseBody, rateLimit, roomCode } from "@/server/http";
-import { JoinRoomBody } from "@/server/schemas";
+import { joinGame, requirePlayer } from "@/server/game";
+import { bearer, handle, ok, rateLimit, roomCode } from "@/server/http";
 
-/** POST /api/v1/rooms/:code/join  { name } → { code, seat, token, room } */
+/** POST /api/v1/rooms/:code/join  (Bearer token) → { room } */
 export const POST = handle(async (req: Request, ctx: { params: Promise<{ code: string }> }) => {
-  rateLimit(req, "join", 10, 60_000);
+  rateLimit(req, "join", 15, 60_000);
   const code = roomCode((await ctx.params).code);
-  const { name } = await parseBody(req, JoinRoomBody);
-  return ok(await joinGame(code, name));
+  const player = await requirePlayer(bearer(req));
+  return ok({ room: await joinGame(code, player) });
 });

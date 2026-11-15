@@ -83,6 +83,13 @@ export interface Room {
   bait_seconds: number;
   reply_seconds: number;
   reveal_seconds: number;
+  player_a_id: string | null; // public player ids (NOT secret; tokens are server-only)
+  player_b_id: string | null;
+  elo_a: number | null; // Elo when the match started (for tier badges)
+  elo_b: number | null;
+  winner: Seat | "tie" | null; // set when the match finishes
+  elo_result: EloResult | null; // Elo change, set when the match finishes
+  rematch_code: string | null; // set when someone hits Rematch
   version: number; // optimistic-locking counter
   created_at: string;
   updated_at: string;
@@ -96,10 +103,27 @@ export type Action =
   | { type: "timeout" }
   | { type: "next" };
 
-/** Stored per-room on the client after create/join. */
-export interface PlayerSession {
-  code: string;
-  seat: Seat;
-  name: string;
-  token: string;
+// ===================== Players & ranked (Person A) =====================
+
+/** Public player profile (never includes the secret token). */
+export interface Player {
+  id: string;
+  username: string;
+  elo: number;
+  wins: number;
+  losses: number;
+  ties: number;
 }
+
+/** What the client keeps in localStorage after picking a username. */
+export interface StoredPlayer {
+  id: string;
+  username: string;
+  token: string; // secret: sent as `Authorization: Bearer <token>`
+}
+
+export interface EloChange {
+  before: number;
+  after: number;
+}
+export type EloResult = { a: EloChange; b: EloChange };
