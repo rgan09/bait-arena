@@ -192,17 +192,19 @@ export const CATEGORIES: Category[] = [
       "Scopers suck at krillion.",
       "Theo's the best bounty hunter.",
       "Most used open source framework is kubernetes.",
-      "ScopeGoats aren't in last place, the leaderboard is just upside down.",
-      "Theo is mid at bounty hunting and everyone's too scared to say it.",
+      "Theo is the best ScopeCup player.",
+      "ScopeGoats are winning it all this year.",
     ],
     context:
-      "Scope is the club hosting this hackathon. Inside jokes everyone in the room knows: " +
-      "Max (an e-board member) is the club's favourite target and is easily made fun of. " +
-      "Theo is genuinely the best bounty hunter, but nobody will admit it. " +
-      "Team ScopeGoats (John and Anjolie) are currently in last place. " +
-      "The club loves Krillion but is honestly bad at it. " +
-      "Light teasing of Max, Theo, John, Anjolie or the ScopeGoats about club things is friendly banter, NOT an attack, " +
-      "so do not flag it. Still flag slurs, threats, sexual content, or jokes about anyone's appearance or identity.",
+      "Scope is the club hosting this hackathon. Club facts: Max is an e-board member. " +
+      "Theo is a top bounty hunter and ScopeCup player. Team ScopeGoats (John and Anjolie) are currently in last place. " +
+      "The club loves Krillion but is bad at it. " +
+      "STYLE FOR THIS CATEGORY: keep takes simple and baseline: one short, confident claim about a club topic, like " +
+      "\"Max is the greatest e-board member rn\", \"Theo is the best bounty hunter\", \"ScopeGoats are winning it all\" " +
+      "or \"Scope is actually good at Krillion\". Rotate between club topics and don't keep targeting the same person. " +
+      "No elaborate roasts, insults, family or grandma jokes, or claims about anyone's coding skills or effort. " +
+      "Takes about these people are friendly banter, NOT an attack, so do not flag them. " +
+      "Still flag slurs, threats, sexual content, or jokes about anyone's appearance or identity.",
   },
 ];
 
