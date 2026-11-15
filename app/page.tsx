@@ -18,6 +18,7 @@ const HOW = [
 const MODES = [
   { href: "/zen", icon: "🧘", title: "Zen Mode", sub: "AI baits you. Don't bite." },
   { href: "/school", icon: "🎓", title: "Bait School", sub: "Daily challenge + lessons" },
+  { href: "/spot", icon: "🕵️", title: "Spot the Bait", sub: "Sincere or bait? 7 seconds." },
 ];
 
 export default function Home() {
@@ -128,11 +129,11 @@ export default function Home() {
           </>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           {MODES.map((m) => (
-            <Link key={m.href} href={m.href} className="rounded-3xl border border-zinc-800 p-4 transition hover:border-zinc-600 hover:bg-zinc-900">
+            <Link key={m.href} href={m.href} className="rounded-3xl border border-zinc-800 p-3 transition hover:border-zinc-600 hover:bg-zinc-900">
               <div className="text-2xl">{m.icon}</div>
-              <p className="mt-1 font-bold">{m.title}</p>
+              <p className="mt-1 text-sm font-bold leading-tight">{m.title}</p>
               <p className="text-xs text-zinc-500">{m.sub}</p>
             </Link>
           ))}

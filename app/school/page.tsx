@@ -100,6 +100,11 @@ export default function SchoolPage() {
               </Link>
             ))}
           </div>
+          <Link href="/spot" className="mt-8 flex items-center gap-3 rounded-2xl border border-zinc-800 p-4 hover:bg-zinc-900">
+            <span className="text-3xl">🕵️</span>
+            <span className="flex-1"><b>Spot the Bait</b><span className="block text-sm text-zinc-400">Test yourself: 10 posts, sincere or bait?</span></span>
+            <span className="text-zinc-500">›</span>
+          </Link>
           <p className="mt-8 text-center text-xs text-zinc-600">Bait the topic, not the person. Slurs and attacks score zero.</p>
         </section>
       </div>

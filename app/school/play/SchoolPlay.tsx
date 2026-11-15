@@ -5,6 +5,9 @@ import { Composer } from "@/components/Composer";
 import { Button, Pill, Post, ScoreBar } from "@/components/feed";
 import { CommentFlood } from "@/components/school/CommentFlood";
 import { CountUp } from "@/components/school/CountUp";
+import { JudgeCooking } from "@/components/JudgeCooking";
+import { SoundToggle } from "@/components/SoundToggle";
+import { sfx, unlockAudio } from "@/lib/sfx";
 import { usePlayer } from "@/hooks/usePlayer";
 import { getCategory, randomCategoryId } from "@/lib/categories";
 import { getLesson } from "@/lib/lessons";
@@ -25,6 +28,8 @@ export default function SchoolPlay({ category, technique, daily }: { category: s
 
   async function post(bait: string) {
     setErr(null);
+    unlockAudio();
+    sfx.pop();
     setStage({ kind: "posting", bait });
     try {
       const res = await fetch("/api/school/post", {
@@ -38,6 +43,8 @@ export default function SchoolPlay({ category, technique, daily }: { category: s
       const score = result.provocation + result.plausibility + result.creativity;
       const best = daily && !result.flagged ? saveDailyBest(todayKey(), score) : false;
       setStage({ kind: "result", bait, result, best });
+      sfx.ding();
+      if (!result.flagged && score >= 22) setTimeout(sfx.boom, 400); // the post went nuclear
     } catch (e) {
       setErr((e as Error).message);
       setStage({ kind: "compose" });
@@ -55,7 +62,10 @@ export default function SchoolPlay({ category, technique, daily }: { category: s
       <div className="mx-auto min-h-screen max-w-xl border-x border-zinc-800">
         <header className="sticky top-0 z-40 flex items-center justify-between border-b border-zinc-800 bg-black/80 px-4 py-3 backdrop-blur">
           <Link href="/school" className="text-sm font-semibold text-zinc-300 hover:text-white">← Bait School</Link>
-          {daily ? <Pill tone="amber">Daily challenge</Pill> : lesson ? <Pill tone="sky">Practising</Pill> : <Pill>Free practice</Pill>}
+          <div className="flex items-center gap-2">
+            {daily ? <Pill tone="amber">Daily challenge</Pill> : lesson ? <Pill tone="sky">Practising</Pill> : <Pill>Free practice</Pill>}
+            <SoundToggle />
+          </div>
         </header>
 
         <div className="border-b border-zinc-800 px-4 py-4 text-center">
@@ -93,10 +103,7 @@ export default function SchoolPlay({ category, technique, daily }: { category: s
         {stage.kind === "posting" && (
           <>
             <Post name={me} text={stage.bait} meta="just now" big />
-            <div className="flex flex-col items-center gap-3 py-12 text-zinc-400">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-zinc-700 border-t-sky-500" />
-              <p>The internet is reading your post…</p>
-            </div>
+            <JudgeCooking lines={["📲 Posting…", "👀 The internet is reading it…", "⌨️ People are typing…", "🔥 Someone opened caps lock…"]} />
           </>
         )}
 

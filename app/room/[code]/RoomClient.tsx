@@ -10,6 +10,9 @@ import { TierBadge } from "@/components/TierBadge";
 import { UsernameForm } from "@/components/UsernameForm";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useNow, useRoom } from "@/hooks/useRoom";
+import { useRoomSfx } from "@/hooks/useRoomSfx";
+import { SoundToggle } from "@/components/SoundToggle";
+import { JudgeCooking } from "@/components/JudgeCooking";
 import { api, ApiError } from "@/lib/api";
 import { getCategory } from "@/lib/categories";
 import type { Action, Room, Seat, StoredPlayer } from "@/lib/types";
@@ -22,6 +25,7 @@ const nameOf = (room: Room, seat: "a" | "b") => (seat === "a" ? room.player_a : 
 export default function RoomClient({ code }: { code: string }) {
   const { room, turns, error, accept } = useRoom(code);
   const now = useNow();
+  useRoomSfx(room, now);
 
   const { player, register } = usePlayer();
   const [busy, setBusy] = useState(false);
@@ -108,6 +112,9 @@ export default function RoomClient({ code }: { code: string }) {
             <p className="font-mono text-6xl font-black tracking-[0.2em] text-sky-400">{room.code}</p>
             <CopyLink code={room.code} />
             <p className="animate-pulse pt-4 text-zinc-500">Waiting for an opponent…</p>
+            <Link href={`/room/${room.code}/screen`} target="_blank" className="inline-block pt-2 text-sm text-sky-400 underline">
+              📺 Open the projector view
+            </Link>
           </div>
         )
       )}
@@ -169,10 +176,7 @@ export default function RoomClient({ code }: { code: string }) {
           ) : (
             <Post name={replier} text={room.reply ?? ""} meta="replying" />
           )}
-          <div className="flex flex-col items-center gap-3 py-12 text-zinc-400">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-zinc-700 border-t-sky-500" />
-            <p>⚖️ The judge is reading the comments…</p>
-          </div>
+          <JudgeCooking />
         </>
       )}
 
@@ -224,6 +228,7 @@ function Header({ room, seat, role }: { room: Room; seat: "a" | "b" | null; role
         <div className="flex items-center gap-2">
           {role && <Pill tone={role === "baiting" ? "rose" : role === "defending" ? "emerald" : "zinc"}>{role === "baiting" ? "You're baiting" : role === "defending" ? "You're defending" : "Spectating 👀"}</Pill>}
           <Pill>{room.code}</Pill>
+          <SoundToggle />
         </div>
       </div>
       {room.player_b && (

@@ -33,7 +33,11 @@ export default function LeaderboardPage() {
         </div>
 
         {err && <p className="px-4 text-rose-400">{err}</p>}
-        {!players && !err && <p className="px-4 text-zinc-500">Loading…</p>}
+        {!players && !err && (
+          <div className="space-y-px">
+            {Array.from({ length: 8 }, (_, k) => <div key={k} className="h-[61px] animate-pulse border-b border-zinc-800 bg-zinc-950" />)}
+          </div>
+        )}
 
         <ol>
           {players?.map((p, i) => {
