@@ -49,10 +49,13 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return data as T;
 }
 
+/** Ticks while `active`. Starts at 0 and reads the clock only in the browser (Next prerenders this page). */
 function useNow(active: boolean, ms = 250) {
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(0);
   useEffect(() => {
     if (!active) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync to the real clock as soon as the timer starts
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), ms);
     return () => clearInterval(id);
   }, [active, ms]);
