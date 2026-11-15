@@ -20,15 +20,15 @@ export default function LeaderboardPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-black text-zinc-100">
-      <div className="mx-auto min-h-screen max-w-xl border-x border-zinc-800">
-        <header className="sticky top-0 z-40 flex items-center justify-between border-b border-zinc-800 bg-black/80 px-4 py-3 backdrop-blur">
-          <Link href="/" className="text-lg font-black tracking-tight">🎣 Bait Arena</Link>
+    <main className="min-h-screen bg-transparent text-zinc-100">
+      <div className="mx-auto min-h-screen max-w-xl pb-10">
+        <header className="sticky top-0 z-40 flex items-center justify-between bg-night/85 px-4 py-3 backdrop-blur">
+          <Link href="/" className="marquee-sm text-lg" aria-label="Bait Arena home">BAIT ARENA</Link>
           <span className="text-sm font-semibold text-zinc-400">Leaderboard</span>
         </header>
 
         <div className="px-4 py-6">
-          <h1 className="text-3xl font-black">Most chronically online 👑</h1>
+          <h1 className="font-display text-3xl">Most chronically online 👑</h1>
           <p className="mt-1 text-sm text-zinc-500">Top 20 by Elo. Win battles to climb.</p>
         </div>
 
@@ -58,7 +58,7 @@ export default function LeaderboardPage() {
         </ol>
 
         <section className="px-4 py-8">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-500">Tiers</p>
+          <p className="mb-3 font-display text-sm text-zinc-500">Tiers</p>
           <div className="flex flex-wrap gap-2">
             {TIERS.map((t, i) => (
               <span key={t.name} className={`rounded-full border px-3 py-1 text-xs font-semibold ${t.className}`}>
@@ -66,8 +66,8 @@ export default function LeaderboardPage() {
               </span>
             ))}
           </div>
-          <Link href="/" className="mt-8 inline-block rounded-full bg-sky-500 px-6 py-2.5 font-bold text-white hover:bg-sky-400">
-            Battle someone →
+          <Link href="/" className="mt-8 inline-block rounded-xl bg-spot font-display text-night shadow-[0_4px_0_#b38a00] transition hover:bg-sky-300 active:translate-y-1 active:shadow-none px-6 py-3 text-sm">
+            Start a fight
           </Link>
         </section>
       </div>

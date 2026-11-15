@@ -58,9 +58,9 @@ export default function SchoolPlay({ category, technique, daily }: { category: s
   }
 
   return (
-    <main className="min-h-screen bg-black text-zinc-100">
-      <div className="mx-auto min-h-screen max-w-xl border-x border-zinc-800">
-        <header className="sticky top-0 z-40 flex items-center justify-between border-b border-zinc-800 bg-black/80 px-4 py-3 backdrop-blur">
+    <main className="min-h-screen bg-transparent text-zinc-100">
+      <div className="mx-auto min-h-screen max-w-xl pb-10">
+        <header className="sticky top-0 z-40 flex items-center justify-between bg-night/85 px-4 py-3 backdrop-blur">
           <Link href="/school" className="text-sm font-semibold text-zinc-300 hover:text-white">← Bait School</Link>
           <div className="flex items-center gap-2">
             {daily ? <Pill tone="amber">Daily challenge</Pill> : lesson ? <Pill tone="sky">Practising</Pill> : <Pill>Free practice</Pill>}
@@ -69,8 +69,8 @@ export default function SchoolPlay({ category, technique, daily }: { category: s
         </header>
 
         <div className="border-b border-zinc-800 px-4 py-4 text-center">
-          <span className="text-xs uppercase tracking-[0.25em] text-zinc-500">Category</span>
-          <p className="text-3xl font-black">{cat.emoji} {cat.label}</p>
+          <span className="font-display text-sm text-zinc-500">Category</span>
+          <p className="font-display text-3xl">{cat.emoji} {cat.label}</p>
           <p className="mt-1 text-sm text-zinc-400">{cat.prompt}</p>
         </div>
 
@@ -147,7 +147,7 @@ function Result({
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-4xl font-black text-sky-400">{score}<span className="text-xl text-zinc-500">/30</span></span>
+            <span className="font-mono font-display text-4xl text-sky-400">{score}<span className="text-xl text-zinc-500">/30</span></span>
             <Pill tone="amber">{schoolVerdict(score)}</Pill>
             {stage.best && <Pill tone="emerald">🏅 New daily best</Pill>}
           </div>

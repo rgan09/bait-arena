@@ -3,7 +3,7 @@ import RoomClient from "./RoomClient";
 
 export default function RoomPage({ params }: { params: Promise<{ code: string }> }) {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-black p-10 text-center text-zinc-500">Loading the timeline…</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-transparent p-10 text-center text-zinc-500">Loading the timeline…</div>}>
       <Room params={params} />
     </Suspense>
   );

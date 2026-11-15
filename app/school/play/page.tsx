@@ -5,7 +5,7 @@ type Search = Promise<{ category?: string; technique?: string; daily?: string }>
 
 export default function PlayPage({ searchParams }: { searchParams: Search }) {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-black p-10 text-center text-zinc-500">Loading class…</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-transparent p-10 text-center text-zinc-500">Loading class…</div>}>
       <Play searchParams={searchParams} />
     </Suspense>
   );

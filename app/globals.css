@@ -1,8 +1,54 @@
 @import "tailwindcss";
 
-@theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ---------- Fight Night design tokens ----------
+   night  #1A0F2E  arena background (deep plum)
+   canvas #26173F  ring-mat surfaces
+   fire   #FF4A2B  red corner: the baiter
+   ice    #39C8FF  blue corner: the defender
+   spot   #FFD23F  spotlight: scores + primary actions
+   bone   #FFF4E6  text
+   The neutral (zinc), primary (sky), fire (rose) and ice (emerald) scales are remapped below, so every
+   component picks up the palette without per-file colour edits. */
+@theme {
+  --color-night: #1a0f2e;
+  --color-canvas: #26173f;
+  --color-fire: #ff4a2b;
+  --color-ice: #39c8ff;
+  --color-spot: #ffd23f;
+  --color-bone: #fff4e6;
+
+  --color-zinc-100: #fff4e6;
+  --color-zinc-200: #f3e8f5;
+  --color-zinc-300: #d9cce8;
+  --color-zinc-400: #b3a5cc;
+  --color-zinc-500: #8c7baa;
+  --color-zinc-600: #6a5a88;
+  --color-zinc-700: #4a3970;
+  --color-zinc-800: #36265a;
+  --color-zinc-900: #26173f;
+  --color-zinc-950: #1f1335;
+
+  --color-sky-200: #fff1b8;
+  --color-sky-300: #ffe680;
+  --color-sky-400: #ffdb4d;
+  --color-sky-500: #ffd23f;
+  --color-sky-600: #e6b400;
+
+  --color-rose-200: #ffd3c9;
+  --color-rose-300: #ff9f8a;
+  --color-rose-400: #ff7356;
+  --color-rose-500: #ff4a2b;
+  --color-rose-600: #e03515;
+
+  --color-emerald-200: #cff3ff;
+  --color-emerald-300: #8fe0ff;
+  --color-emerald-400: #5cd4ff;
+  --color-emerald-500: #39c8ff;
+  --color-emerald-600: #12a7e0;
+
+  --font-sans: "Archivo Variable", "Archivo", system-ui, sans-serif;
+  --font-display: "Bungee", "Archivo Variable", system-ui, sans-serif;
+  --font-mono: "Bungee", ui-monospace, monospace;
 }
 
 :root {
@@ -10,9 +56,36 @@
 }
 
 body {
-  background: #000;
-  color: #ededed;
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  color: var(--color-bone);
+  font-family: var(--font-sans);
+  background-color: var(--color-night);
+  /* the spotlight over the ring */
+  background-image:
+    radial-gradient(ellipse 70% 45% at 50% -8%, rgb(255 210 63 / 0.13), transparent 70%),
+    radial-gradient(ellipse 40% 60% at 0% 100%, rgb(255 74 43 / 0.07), transparent 70%),
+    radial-gradient(ellipse 40% 60% at 100% 100%, rgb(57 200 255 / 0.07), transparent 70%);
+  background-attachment: fixed;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-spot);
+  outline-offset: 2px;
+}
+
+/* Brand mark: bone letters with a fire/ice split shadow, like a misregistered fight poster. */
+.marquee {
+  font-family: var(--font-display);
+  color: var(--color-bone);
+  text-shadow: -3px 3px 0 var(--color-fire), 3px -3px 0 var(--color-ice);
+  line-height: 0.92;
+}
+
+/* tighter split for small sizes, so it reads as a logo rather than a smudge */
+.marquee-sm {
+  font-family: var(--font-display);
+  color: var(--color-bone);
+  text-shadow: -1.5px 1.5px 0 var(--color-fire), 1.5px -1.5px 0 var(--color-ice);
+  letter-spacing: 0.02em;
 }
 
 @keyframes fadeIn {
@@ -20,12 +93,23 @@ body {
   to { opacity: 1; transform: none; }
 }
 
+/* scale only: rotation/translation come from the element's own classes (Tailwind v4 uses separate properties) */
 @keyframes stamp {
-  0% { opacity: 0; transform: rotate(12deg) scale(3); }
-  100% { opacity: 1; transform: rotate(12deg) scale(1); }
+  0% { opacity: 0; transform: scale(3); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(-16px); }
   to { opacity: 1; transform: none; }
+}
+
+@keyframes vsPunch {
+  0% { transform: scale(0.4) rotate(-12deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

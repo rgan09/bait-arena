@@ -6,12 +6,12 @@ export interface Tier {
 }
 
 export const TIERS: Tier[] = [
-  { name: "Grass Toucher", min: -Infinity, className: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
-  { name: "Lurker", min: 900, className: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30" },
-  { name: "Reply Guy", min: 1000, className: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
-  { name: "Quote Tweeter", min: 1100, className: "bg-violet-500/15 text-violet-300 border-violet-500/30" },
-  { name: "Ratio Lord", min: 1200, className: "bg-rose-500/15 text-rose-300 border-rose-500/30" },
-  { name: "Chronically Online 👑", min: 1300, className: "bg-amber-500/15 text-amber-300 border-amber-500/40" },
+  { name: "Grass Toucher", min: -Infinity, className: "bg-green-400/15 text-green-300 border-green-400/40" },
+  { name: "Lurker", min: 900, className: "bg-zinc-700/40 text-zinc-300 border-zinc-600" },
+  { name: "Reply Guy", min: 1000, className: "bg-ice/15 text-emerald-300 border-ice/40" },
+  { name: "Quote Tweeter", min: 1100, className: "bg-violet-400/15 text-violet-300 border-violet-400/40" },
+  { name: "Ratio Lord", min: 1200, className: "bg-fire/15 text-rose-300 border-fire/40" },
+  { name: "Chronically Online 👑", min: 1300, className: "bg-spot/15 text-spot border-spot/50" },
 ];
 
 export function tierFor(elo: number): Tier {

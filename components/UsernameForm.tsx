@@ -26,7 +26,7 @@ export function UsernameForm({ onSubmit, cta = "Let's go" }: { onSubmit: (userna
         }
       }}
     >
-      <div className="flex items-center rounded-full border border-zinc-700 bg-zinc-900 px-5 focus-within:border-sky-500">
+      <div className="flex items-center rounded-xl border-2 border-zinc-700 bg-night/60 px-5 focus-within:border-spot">
         <span className="text-lg text-zinc-500">@</span>
         <input
           autoFocus

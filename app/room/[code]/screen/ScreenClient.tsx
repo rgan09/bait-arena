@@ -48,7 +48,7 @@ export default function ScreenClient({ code }: { code: string }) {
       {!soundOn && (
         <button
           onClick={() => { unlockAudio(); setTimeout(() => setSoundOn(audioUnlocked()), 100); }}
-          className="fixed right-6 top-6 z-50 rounded-full bg-sky-500 px-5 py-2 text-lg font-bold text-white shadow-lg"
+          className="fixed bottom-6 right-6 z-50 rounded-full bg-sky-500 px-5 py-2 text-lg font-bold text-night shadow-lg"
         >
           🔊 Click to enable sound
         </button>
@@ -59,19 +59,19 @@ export default function ScreenClient({ code }: { code: string }) {
       {room.phase === "lobby" && (
         <div className="m-auto grid w-full max-w-6xl grid-cols-2 items-center gap-16">
           <div className="space-y-6">
-            <h1 className="text-8xl font-black leading-none">🎣 Bait<br />Arena</h1>
-            <p className="text-3xl text-zinc-400">1v1 hot-take battle</p>
+            <h1 className="marquee text-[9rem]">BAIT<br />ARENA</h1>
+            <p className="text-3xl text-zinc-300">Tonight: a 1v1 hot-take fight</p>
             <div className="flex items-center gap-4 text-3xl">
               <Avatar name={room.player_a} size={64} />
               <span className="font-bold">@{room.player_a}</span>
               <TierBadge elo={room.elo_a} size="md" />
             </div>
-            <p className="animate-pulse text-3xl text-zinc-500">vs … waiting for a challenger</p>
+            <p className="animate-pulse font-display text-3xl text-zinc-400">VS … who&apos;s next?</p>
           </div>
           <div className="space-y-4 text-center">
-            <JoinQR code={room.code} size={380} />
+            <div className="mx-auto w-fit rounded-[2rem] bg-bone p-4 shadow-[0_0_100px_-10px_rgb(255_210_63/0.55)]"><JoinQR code={room.code} size={360} /></div>
             <p className="text-2xl text-zinc-400">Scan to join, or enter code</p>
-            <p className="font-mono text-9xl font-black tracking-[0.15em] text-sky-400">{room.code}</p>
+            <p className="font-display text-9xl tracking-[0.12em] text-spot">{room.code}</p>
           </div>
         </div>
       )}
@@ -79,8 +79,8 @@ export default function ScreenClient({ code }: { code: string }) {
       {(room.phase === "bait" || room.phase === "reply" || room.phase === "judging") && (
         <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 py-8">
           <div className="text-center">
-            <p className="text-xl uppercase tracking-[0.3em] text-zinc-500">Round {room.turn + 1} of {GAME.MATCH_ROUNDS}</p>
-            <p className="text-7xl font-black">{cat.emoji} {cat.label}</p>
+            <p className="font-display text-2xl text-spot">Round {room.turn + 1} of {GAME.MATCH_ROUNDS}</p>
+            <p className="font-display text-7xl text-bone">{cat.emoji} {cat.label}</p>
             <p className="mt-2 text-2xl text-zinc-400">{cat.prompt}</p>
           </div>
           {room.phase !== "judging" && (
@@ -114,7 +114,7 @@ export default function ScreenClient({ code }: { code: string }) {
 // ---------- pieces ----------
 
 function Frame({ children }: { children: React.ReactNode }) {
-  return <main className="flex min-h-screen flex-col bg-black px-12 py-8 text-zinc-100">{children}</main>;
+  return <main className="flex min-h-screen flex-col bg-transparent px-12 py-8 text-zinc-100">{children}</main>;
 }
 
 function Scoreboard({ room }: { room: Room }) {
@@ -124,24 +124,29 @@ function Scoreboard({ room }: { room: Room }) {
     elo: seat === "a" ? room.elo_a : room.elo_b,
     baiting: room.phase !== "recap" && baiterSeat(room.turn) === seat,
   });
+  const fighting = room.phase !== "recap";
   return (
-    <div className="flex items-center justify-between gap-8 border-b border-zinc-800 pb-6">
+    <div className="flex items-center justify-between gap-6 pb-4">
       {(["a", "b"] as const).map((seat, i) => {
         const x = p(seat);
         return (
-          <div key={seat} className={`flex items-center gap-5 ${i ? "flex-row-reverse text-right" : ""}`}>
-            <Avatar name={x.name} size={72} />
+          <div key={seat} style={{ order: i ? 3 : 1 }} className={`flex flex-1 items-center gap-5 rounded-3xl border-4 px-6 py-4 ${i ? "flex-row-reverse text-right" : ""} ${
+            !fighting ? "border-zinc-800 bg-canvas" : x.baiting ? "border-fire bg-fire/15" : "border-ice bg-ice/15"}`}>
+            <Avatar name={x.name} size={72} corner={!fighting ? undefined : x.baiting ? "fire" : "ice"} />
             <div>
               <p className="text-3xl font-bold">@{x.name}</p>
               <div className={`mt-1 flex items-center gap-2 ${i ? "justify-end" : ""}`}>
                 <TierBadge elo={x.elo} size="md" />
-                {x.baiting && <span className="rounded-full bg-rose-500/20 px-3 py-0.5 text-base font-bold text-rose-300">🔥 baiting</span>}
+                {fighting && (x.baiting
+                  ? <span className="rounded-full bg-fire/25 px-3 py-0.5 text-base font-bold text-rose-200">🔥 Red corner</span>
+                  : <span className="rounded-full bg-ice/25 px-3 py-0.5 text-base font-bold text-emerald-200">🧊 Blue corner</span>)}
               </div>
             </div>
-            <span className="font-mono text-7xl font-black text-sky-400">{x.score}</span>
+            <span className={`font-display text-7xl text-spot ${i ? "mr-auto" : "ml-auto"}`}>{x.score}</span>
           </div>
         );
       })}
+      <span style={{ order: 2 }} className="font-display text-6xl text-spot">VS</span>
     </div>
   );
 }
@@ -157,7 +162,7 @@ function BigTimer({ endsAt, total, now }: { endsAt: string | null; total: number
         <div className={`h-full rounded-full transition-[width] duration-300 ease-linear ${danger ? "bg-rose-500" : "bg-sky-500"}`}
           style={{ width: `${Math.min(100, (left / (total * 1000)) * 100)}%` }} />
       </div>
-      <span className={`w-28 text-right font-mono text-6xl font-black ${danger ? "animate-pulse text-rose-400" : ""}`}>{secs}s</span>
+      <span className={`w-28 text-right font-display text-6xl ${danger ? "animate-pulse text-fire" : "text-spot"}`}>{secs}</span>
     </div>
   );
 }
@@ -176,8 +181,8 @@ function Waiting({ name, text }: { name: string; text: string }) {
 
 function BigPost({ name, text, reply }: { name: string; text: string; reply?: boolean }) {
   return (
-    <div className={`flex animate-[fadeIn_.4s_ease-out] gap-5 rounded-3xl border p-8 ${reply ? "ml-24 border-zinc-800" : "border-zinc-700 bg-zinc-950"}`}>
-      <Avatar name={name} size={64} />
+    <div className={`flex animate-[fadeIn_.4s_ease-out] gap-5 rounded-3xl border-l-8 bg-canvas p-8 ${reply ? "ml-24 border-l-ice" : "border-l-fire"}`}>
+      <Avatar name={name} size={64} corner={reply ? "ice" : "fire"} />
       <div className="min-w-0">
         <p className="text-2xl text-zinc-400"><b className="text-zinc-100">@{name}</b>{reply ? " · replying" : ""}</p>
         <p className={`mt-2 break-words font-semibold leading-snug ${reply ? "text-4xl" : "text-5xl"}`}>{text}</p>
@@ -207,7 +212,7 @@ function BigResult({ turn, room, now }: { turn: TurnRecord; room: Room; now: num
   return (
     <div className="relative mx-auto grid w-full max-w-7xl flex-1 grid-cols-2 gap-10 py-8">
       {(tookBait || ratiod) && (
-        <div className={`pointer-events-none absolute right-0 top-4 z-10 rotate-12 animate-[stamp_.5s_cubic-bezier(.2,1.6,.4,1)] rounded-2xl border-8 bg-black/80 px-8 py-3 text-6xl font-black uppercase tracking-widest ${tookBait ? "border-rose-500 text-rose-500" : "border-emerald-400 text-emerald-400"}`}>
+        <div className={`pointer-events-none absolute bottom-6 left-[6%] z-10 -rotate-[8deg] animate-[stamp_.5s_cubic-bezier(.2,1.6,.4,1)] rounded-2xl border-8 bg-night/85 px-8 py-3 font-display text-6xl ${tookBait ? "border-fire text-fire" : "border-ice text-ice"}`}>
           {tookBait ? "Took the bait 🎣" : "Ratio'd 💀"}
         </div>
       )}
@@ -220,9 +225,9 @@ function BigResult({ turn, room, now }: { turn: TurnRecord; room: Room; now: num
       <div className="space-y-8">
         <div className="space-y-3">
           <p className="text-3xl font-bold">🔥 {turn.baiter} <span className="text-sky-400">+{turn.bait_points}</span> <span className="text-xl text-amber-300">{r.flagged_bait ? "🚩 FOUL" : baitVerdict(turn.bait_points)}</span></p>
-          <Bar label="Provocation" value={r.bait.provocation} />
-          <Bar label="Plausibility" value={r.bait.plausibility} />
-          <Bar label="Creativity" value={r.bait.creativity} />
+          <Bar label="Provocation" value={r.bait.provocation} color="bg-fire" />
+          <Bar label="Plausibility" value={r.bait.plausibility} color="bg-fire" />
+          <Bar label="Creativity" value={r.bait.creativity} color="bg-fire" />
           <p className="rounded-2xl bg-zinc-900 p-5 text-3xl leading-snug">{r.roast}</p>
         </div>
         <div className="space-y-3">
@@ -251,10 +256,11 @@ function BigRecap({ room, turns }: { room: Room; turns: TurnRecord[] }) {
         {winner ? (
           <>
             <div className="flex justify-center"><Avatar name={winner} size={140} /></div>
-            <h2 className="text-8xl font-black">{winner}<br />wins 👑</h2>
+            <p className="font-display text-4xl text-spot">Winner by decision</p>
+            <h2 className="font-display text-8xl text-bone">{winner}</h2>
           </>
         ) : (
-          <h2 className="text-8xl font-black">Dead even 🤝</h2>
+          <h2 className="font-display text-8xl text-bone">Draw 🤝</h2>
         )}
         {elo && (
           <div className="flex justify-center gap-10 font-mono text-3xl">

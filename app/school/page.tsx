@@ -16,15 +16,15 @@ export default function SchoolPage() {
   const best = day?.best ?? null;
 
   return (
-    <main className="min-h-screen bg-black text-zinc-100">
-      <div className="mx-auto min-h-screen max-w-xl border-x border-zinc-800">
-        <header className="sticky top-0 z-40 flex items-center justify-between border-b border-zinc-800 bg-black/80 px-4 py-3 backdrop-blur">
-          <Link href="/" className="text-lg font-black tracking-tight">🎣 Bait Arena</Link>
+    <main className="min-h-screen bg-transparent text-zinc-100">
+      <div className="mx-auto min-h-screen max-w-xl pb-10">
+        <header className="sticky top-0 z-40 flex items-center justify-between bg-night/85 px-4 py-3 backdrop-blur">
+          <Link href="/" className="marquee-sm text-lg" aria-label="Bait Arena home">BAIT ARENA</Link>
           <span className="text-sm font-semibold text-zinc-400">🎓 Bait School</span>
         </header>
 
         <div className="px-4 py-6">
-          <h1 className="text-4xl font-black">Bait School 🎓</h1>
+          <h1 className="font-display text-4xl">Bait School 🎓</h1>
           <p className="mt-2 text-zinc-400">
             Learn the 5 tricks every ragebait post uses. Once you can write it, you can spot it, and stop falling for it.
           </p>
@@ -33,8 +33,8 @@ export default function SchoolPage() {
         {/* Daily challenge */}
         {daily ? (
         <section className="mx-4 rounded-3xl border border-amber-500/30 bg-amber-500/5 p-5">
-          <p className="text-xs font-semibold uppercase tracking-widest text-amber-300">Daily challenge</p>
-          <p className="mt-2 text-3xl font-black">{daily.emoji} {daily.label}</p>
+          <p className="font-display text-sm text-amber-300">Daily challenge</p>
+          <p className="mt-2 font-display text-3xl">{daily.emoji} {daily.label}</p>
           <p className="mt-1 text-sm text-zinc-400">{daily.prompt}</p>
           <div className="mt-4 flex items-center justify-between gap-3">
             <span className="text-sm text-zinc-400">
@@ -42,7 +42,7 @@ export default function SchoolPage() {
             </span>
             <Link
               href={`/school/play?category=${daily.id}&daily=1`}
-              className="rounded-full bg-amber-500 px-5 py-2 text-sm font-bold text-black hover:bg-amber-400"
+              className="shrink-0 rounded-xl bg-spot font-display text-night shadow-[0_4px_0_#b38a00] transition hover:bg-sky-300 active:translate-y-1 active:shadow-none px-4 py-2.5 text-sm"
             >
               {best == null ? "Take the challenge" : "Beat your score"}
             </Link>
@@ -54,7 +54,7 @@ export default function SchoolPage() {
 
         {/* Lessons */}
         <section className="px-4 pt-8">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-500">The 5 techniques</p>
+          <p className="mb-3 font-display text-sm text-zinc-500">The 5 techniques</p>
           <div className="space-y-3">
             {LESSONS.map((l, i) => (
               <details key={l.id} className="group rounded-2xl border border-zinc-800 open:border-sky-500/40 open:bg-sky-500/5">
@@ -72,7 +72,7 @@ export default function SchoolPage() {
                   <ol className="list-decimal space-y-1 pl-5 text-sm text-zinc-300">
                     {l.recipe.map((step) => <li key={step}>{step}</li>)}
                   </ol>
-                  <div className="rounded-2xl border border-zinc-800 bg-black p-4">
+                  <div className="rounded-2xl border border-zinc-800 bg-transparent p-4">
                     <p className="text-xs text-zinc-500">Example · {getCategory(l.example.category).emoji} {getCategory(l.example.category).label}</p>
                     <p className="mt-1 text-lg">“{l.example.bait}”</p>
                     <p className="mt-2 text-xs text-zinc-400">💡 {l.example.note}</p>
@@ -80,9 +80,9 @@ export default function SchoolPage() {
                   <p className="text-sm text-rose-300">⚠️ Avoid: {l.avoid}</p>
                   <Link
                     href={`/school/play?technique=${l.id}&category=${l.example.category}`}
-                    className="inline-block rounded-full bg-sky-500 px-5 py-2 text-sm font-bold text-white hover:bg-sky-400"
+                    className="inline-block rounded-xl bg-spot font-display text-night shadow-[0_4px_0_#b38a00] transition hover:bg-sky-300 active:translate-y-1 active:shadow-none px-5 py-2.5 text-sm"
                   >
-                    Try it →
+                    Try it
                   </Link>
                 </div>
               </details>
@@ -92,7 +92,7 @@ export default function SchoolPage() {
 
         {/* Free practice */}
         <section className="px-4 py-8">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-500">Free practice</p>
+          <p className="mb-3 font-display text-sm text-zinc-500">Free practice</p>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
               <Link key={c.id} href={`/school/play?category=${c.id}`} className="rounded-full border border-zinc-700 px-3 py-1.5 text-sm hover:bg-zinc-800">

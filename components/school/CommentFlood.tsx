@@ -17,7 +17,7 @@ export function CommentFlood({ replies, extra, startDelay = 600 }: { replies: Fa
 
   return (
     <section>
-      <p className="border-b border-zinc-800 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-zinc-500">
+      <p className="border-b border-zinc-800 px-4 py-2 font-display text-sm text-zinc-500">
         Replies {done ? "" : "incoming…"}
       </p>
       {replies.slice(0, shown).map((r, i) => {

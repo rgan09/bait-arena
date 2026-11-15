@@ -9,9 +9,9 @@ import { usePlayer } from "@/hooks/usePlayer";
 import { api, ApiError } from "@/lib/api";
 
 const HOW = [
-  ["🎲", "Draw a category", "Food crimes, LA life, texting etiquette…"],
-  ["🔥", "Post a hot take", "Make people angry. Sound sincere."],
-  ["🧊", "Clap back or ignore", "Win by dunking calmly. Lose by taking the bait."],
+  ["🎲", "A category is drawn", "Food crimes, LA life, texting etiquette…"],
+  ["🔥", "Red corner baits", "Post the spiciest take you can. Sound sincere."],
+  ["🧊", "Blue corner defends", "Clap back calmly or ignore it. Lose your cool, lose the round."],
 ];
 
 // Solo modes are built by Person B at these routes.
@@ -57,46 +57,49 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-black px-5 text-zinc-100">
+    <main className="min-h-screen bg-transparent px-5 text-zinc-100">
       <div className="mx-auto w-full max-w-md space-y-6 py-10">
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-black">🎣 Bait Arena</span>
-          <Link href="/leaderboard" className="rounded-full border border-zinc-700 px-3 py-1 text-sm font-semibold text-zinc-300 hover:bg-zinc-800">
-            🏆 Leaderboard
+        <div className="flex justify-end">
+          <Link href="/leaderboard" className="rounded-xl border-2 border-zinc-700 bg-canvas px-3 py-1.5 text-sm font-semibold text-zinc-200 hover:border-spot">
+            🏆 Rankings
           </Link>
         </div>
 
-        <div className="space-y-2 pt-4 text-center">
-          <h1 className="text-5xl font-black tracking-tight">Bait Arena</h1>
-          <p className="text-zinc-400">
-            1v1 hot-take battles. Post the spiciest take you can. Clap back without losing your cool. An AI judge roasts you both.
+        <div className="relative pt-2 text-center">
+          <div className="pointer-events-none absolute inset-x-0 top-6 flex justify-between px-2 text-5xl opacity-90" aria-hidden>
+            <span className="-rotate-12">🔥</span>
+            <span className="rotate-12">🧊</span>
+          </div>
+          <h1 className="marquee text-[5.2rem] sm:text-8xl">BAIT<br />ARENA</h1>
+          <p className="mx-auto mt-4 max-w-sm text-lg leading-snug text-zinc-300">
+            1v1 hot-take fights. One of you posts the bait, the other tries not to bite. An AI judge scores it and roasts you both.
           </p>
         </div>
 
         {!ready ? null : !player ? (
-          <section className="space-y-4 rounded-3xl border border-zinc-800 p-5">
-            <p className="text-center font-bold">Pick your username</p>
+          <section className="space-y-4 rounded-3xl border-2 border-spot/50 bg-canvas p-5">
+            <p className="text-center font-display text-lg">Pick your fighter name</p>
             <UsernameForm onSubmit={register} />
           </section>
         ) : (
           <>
-            <section className="flex items-center gap-3 rounded-3xl border border-zinc-800 p-4">
+            <section className="flex items-center gap-3 rounded-3xl bg-canvas p-4">
               <Avatar name={player.username} size={44} />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-bold">@{player.username}</p>
+                <p className="truncate text-lg font-bold">@{player.username}</p>
                 <p className="text-xs text-zinc-500">
-                  {profile ? `${profile.wins}W · ${profile.losses}L${profile.ties ? ` · ${profile.ties}T` : ""}` : "…"}
+                  {profile ? `${profile.wins} wins, ${profile.losses} losses` : "…"}{" "}
+                  <button onClick={signOut} className="ml-1 underline hover:text-zinc-300" title="Use a different username on this device">
+                    not you?
+                  </button>
                 </p>
               </div>
               <TierBadge elo={profile?.elo} showElo size="md" />
-              <button onClick={signOut} className="text-xs text-zinc-600 underline hover:text-zinc-400" title="Use a different username on this device">
-                not you?
-              </button>
             </section>
 
-            <section className="space-y-3 rounded-3xl border border-sky-500/30 bg-sky-500/5 p-5">
-              <p className="text-sm font-bold text-sky-300">⚔️ Ranked 1v1 battle</p>
-              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-zinc-900 px-4 py-3 text-sm">
+            <section className="space-y-3 rounded-3xl border-2 border-spot/60 bg-canvas p-5 shadow-[0_0_60px_-20px_rgb(255_210_63/0.5)]">
+              <p className="font-display text-xl text-bone">Ranked 1v1</p>
+              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-night/60 px-4 py-3 text-sm">
                 <span>
                   <b className="text-zinc-200">⚡ Quick mode</b>
                   <span className="block text-zinc-500">25s takes · 15s replies. Best for demos.</span>
@@ -104,7 +107,7 @@ export default function Home() {
                 <input type="checkbox" checked={quick} onChange={(e) => setQuick(e.target.checked)} className="h-5 w-5 accent-sky-500" />
               </label>
               <div className="flex justify-center">
-                <Button disabled={busy !== null} onClick={create}>{busy === "create" ? "Creating…" : "Create room"}</Button>
+                <Button disabled={busy !== null} onClick={create}>{busy === "create" ? "Opening the ring…" : "Start a fight"}</Button>
               </div>
               <div className="flex items-center gap-3 text-xs text-zinc-600">
                 <div className="h-px flex-1 bg-zinc-800" /> or join with a code <div className="h-px flex-1 bg-zinc-800" />
@@ -115,7 +118,8 @@ export default function Home() {
                   maxLength={4}
                   onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ""))}
                   placeholder="ABCD"
-                  className="w-full rounded-full border border-zinc-700 bg-zinc-900 px-5 py-2 text-center font-mono text-xl tracking-[0.4em] focus:border-sky-500 focus:outline-none"
+                  aria-label="Room code"
+                  className="w-full rounded-xl border-2 border-zinc-700 bg-night/60 px-5 py-2 text-center font-display text-xl tracking-[0.35em] focus:border-spot focus:outline-none"
                 />
                 <Button type="submit" disabled={code.length !== 4 || busy !== null}>{busy === "join" ? "…" : "Join"}</Button>
               </form>
@@ -131,7 +135,7 @@ export default function Home() {
 
         <div className="grid grid-cols-3 gap-2">
           {MODES.map((m) => (
-            <Link key={m.href} href={m.href} className="rounded-3xl border border-zinc-800 p-3 transition hover:border-zinc-600 hover:bg-zinc-900">
+            <Link key={m.href} href={m.href} className="rounded-2xl border-2 border-zinc-800 bg-canvas/70 p-3 transition hover:border-spot">
               <div className="text-2xl">{m.icon}</div>
               <p className="mt-1 text-sm font-bold leading-tight">{m.title}</p>
               <p className="text-xs text-zinc-500">{m.sub}</p>
@@ -141,7 +145,7 @@ export default function Home() {
 
         <div className="grid grid-cols-3 gap-2 text-center">
           {HOW.map(([icon, title, sub]) => (
-            <div key={title} className="rounded-2xl border border-zinc-800 p-3">
+            <div key={title} className="rounded-2xl bg-canvas/50 p-3">
               <div className="text-2xl">{icon}</div>
               <p className="mt-1 text-xs font-bold text-zinc-200">{title}</p>
               <p className="mt-1 text-[11px] leading-snug text-zinc-500">{sub}</p>

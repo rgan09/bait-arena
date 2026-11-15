@@ -93,10 +93,10 @@ export default function SpotPage() {
   const left = Math.max(0, deadline - now);
 
   return (
-    <main className="min-h-screen bg-black text-zinc-100">
-      <div className="mx-auto flex min-h-screen max-w-xl flex-col border-x border-zinc-800">
-        <header className="sticky top-0 z-40 flex items-center justify-between border-b border-zinc-800 bg-black/80 px-4 py-3 backdrop-blur">
-          <Link href="/" className="text-lg font-black tracking-tight">🎣 Bait Arena</Link>
+    <main className="min-h-screen bg-transparent text-zinc-100">
+      <div className="mx-auto flex min-h-screen max-w-xl flex-col pb-10">
+        <header className="sticky top-0 z-40 flex items-center justify-between bg-night/85 px-4 py-3 backdrop-blur">
+          <Link href="/" className="marquee-sm text-lg" aria-label="Bait Arena home">BAIT ARENA</Link>
           <div className="flex items-center gap-2">
             {playing && <Pill>{i + 1}/{deck!.length} · ✅ {correct}</Pill>}
             <SoundToggle />
@@ -106,7 +106,7 @@ export default function SpotPage() {
         {!deck && (
           <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
             <div className="text-6xl">🕵️</div>
-            <h1 className="text-4xl font-black">Spot the Bait</h1>
+            <h1 className="font-display text-4xl">Spot the Bait</h1>
             <p className="text-zinc-400">
               {SPOT.ROUND_SIZE} posts, {SPOT.SECONDS_PER_CARD} seconds each. Is it a <b className="text-zinc-200">sincere</b> post or <b className="text-zinc-200">ragebait</b>?
             </p>
@@ -147,8 +147,8 @@ export default function SpotPage() {
                 <p className="text-sm"><b>{HANDLES[i % HANDLES.length]}</b> <span className="text-zinc-500">· {i + 2}h</span></p>
               </div>
               <p className="mt-4 text-2xl leading-snug">{card.text}</p>
-              {!reveal && drag > 40 && <span className="absolute right-4 top-4 rounded-lg border-2 border-rose-500 px-2 font-black text-rose-500">BAIT</span>}
-              {!reveal && drag < -40 && <span className="absolute right-4 top-4 rounded-lg border-2 border-emerald-500 px-2 font-black text-emerald-500">SINCERE</span>}
+              {!reveal && drag > 40 && <span className="absolute right-4 top-4 rounded-lg border-2 border-rose-500 px-2 font-display text-rose-500">BAIT</span>}
+              {!reveal && drag < -40 && <span className="absolute right-4 top-4 rounded-lg border-2 border-emerald-500 px-2 font-display text-emerald-500">SINCERE</span>}
             </div>
 
             {!reveal ? (
@@ -158,7 +158,7 @@ export default function SpotPage() {
               </div>
             ) : (
               <div className="mt-6 space-y-3 text-center">
-                <p className={`text-2xl font-black ${reveal.correct ? "text-emerald-400" : "text-rose-400"}`}>
+                <p className={`font-display text-2xl ${reveal.correct ? "text-emerald-400" : "text-rose-400"}`}>
                   {reveal.guessBait === null ? "⏰ Too slow!" : reveal.correct ? "✅ Correct" : "❌ Got you"}: it was {reveal.card.isBait ? "bait 🎣" : "sincere 🙂"}
                 </p>
                 {reveal.card.technique && <Pill tone="sky">{getLesson(reveal.card.technique)?.emoji} {getLesson(reveal.card.technique)?.title}</Pill>}
@@ -171,10 +171,10 @@ export default function SpotPage() {
 
         {done && (
           <div className="flex-1 space-y-6 px-4 py-8 text-center">
-            <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">You spotted</p>
-            <p className="font-mono text-7xl font-black text-sky-400">{correct}/{deck!.length}</p>
+            <p className="font-display text-base text-zinc-500">You spotted</p>
+            <p className="font-mono font-display text-7xl text-sky-400">{correct}/{deck!.length}</p>
             <div>
-              <p className="text-3xl font-black">{spotTitle(correct, deck!.length).title}</p>
+              <p className="font-display text-3xl">{spotTitle(correct, deck!.length).title}</p>
               <p className="text-zinc-400">{spotTitle(correct, deck!.length).blurb}</p>
             </div>
             <div className="space-y-2 text-left">

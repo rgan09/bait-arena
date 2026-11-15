@@ -162,8 +162,8 @@ export default function ZenPage() {
   const last = rounds[rounds.length - 1];
 
   return (
-    <main className="min-h-screen bg-black text-zinc-100">
-      <div className="mx-auto min-h-screen max-w-xl border-x border-zinc-800">
+    <main className="min-h-screen bg-transparent text-zinc-100">
+      <div className="mx-auto min-h-screen max-w-xl pb-10">
         <Header phase={phase} lives={lives} score={score} streak={streak} difficulty={current?.bait.difficulty} />
 
         {phase === "intro" && (
@@ -230,9 +230,9 @@ function Header({ phase, lives, score, streak, difficulty }: {
 }) {
   const playing = phase !== "intro" && phase !== "over";
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-800 bg-black/80 px-4 py-3 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-zinc-800 bg-night/85 px-4 py-3 backdrop-blur">
       <div className="flex items-center justify-between">
-        <Link href="/" className="text-lg font-black tracking-tight">🧘 Zen Mode</Link>
+        <Link href="/" className="font-display text-base">🧘 Zen Mode</Link>
         {playing && difficulty && <Pill tone="sky">{DIFFICULTY_LABEL[difficulty]}</Pill>}
       </div>
       {playing && (
@@ -265,7 +265,7 @@ function Intro({ choice, setChoice, best, error, onStart }: {
     <div className="space-y-6 px-4 py-10">
       <div className="space-y-2 text-center">
         <div className="text-6xl">🧘</div>
-        <h1 className="text-4xl font-black">Don&apos;t take the bait</h1>
+        <h1 className="font-display text-4xl">Don&apos;t take the bait</h1>
         <p className="text-zinc-400">The AI posts ragebait. You reply without losing your cool. A coach shows you the hook and a better comeback.</p>
       </div>
 
@@ -277,7 +277,7 @@ function Intro({ choice, setChoice, best, error, onStart }: {
       </ul>
 
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Category</p>
+        <p className="font-display text-sm text-zinc-500">Category</p>
         <div className="flex flex-wrap gap-2">
           {chip("any", "🎲 Any")}
           {CATEGORIES.map((c) => chip(c.id, `${c.emoji} ${c.label}`))}
@@ -297,7 +297,7 @@ function CategoryBanner({ id }: { id: string }) {
   const c = getCategory(id);
   return (
     <div className="border-b border-zinc-800 px-4 py-3 text-center">
-      <p className="text-xl font-black">{c.emoji} {c.label}</p>
+      <p className="font-display text-xl">{c.emoji} {c.label}</p>
     </div>
   );
 }
@@ -332,7 +332,7 @@ function Review({ round, livesLeft, onNext }: { round: Round; livesLeft: number;
       )}
 
       <section className="relative space-y-5 px-4 py-5">
-        <div className={`pointer-events-none absolute right-3 top-2 z-10 rotate-12 animate-[stamp_.5s_cubic-bezier(.2,1.6,.4,1)] rounded-lg border-4 bg-black/70 px-3 py-1 text-lg font-black uppercase tracking-widest ${o.tone}`}>
+        <div className={`pointer-events-none absolute right-3 top-2 z-10 rotate-12 animate-[stamp_.5s_cubic-bezier(.2,1.6,.4,1)] rounded-lg border-4 bg-night/80 px-3 py-1 text-lg font-display ${o.tone}`}>
           {o.stamp}
         </div>
 
@@ -358,7 +358,7 @@ function Review({ round, livesLeft, onNext }: { round: Round; livesLeft: number;
         <p className="rounded-xl bg-zinc-900 p-3 text-zinc-200">🧘 {coach.verdict}</p>
         <p className="rounded-xl bg-zinc-900 p-3 text-zinc-200">💡 {coach.tip}</p>
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300">Try a reply like</p>
+          <p className="font-display text-sm text-emerald-300">Try a reply like</p>
           <p className="mt-1 text-lg text-zinc-100">“{coach.better_reply}”</p>
         </div>
 
@@ -382,8 +382,8 @@ function GameOver({ rounds, score, best, onAgain }: { rounds: Round[]; score: nu
 
   return (
     <div className="space-y-6 px-4 py-10 text-center">
-      <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">Training over</p>
-      <p className="font-mono text-6xl font-black text-sky-400">{score}</p>
+      <p className="font-display text-base text-zinc-500">Training over</p>
+      <p className="font-mono font-display text-6xl text-sky-400">{score}</p>
       <p className="text-zinc-400">{newBest ? "New personal best 🎉" : `Best: ${best}`}</p>
 
       <div className="mx-auto grid max-w-sm grid-cols-3 gap-2 text-sm">
@@ -394,7 +394,7 @@ function GameOver({ rounds, score, best, onAgain }: { rounds: Round[]; score: nu
 
       {gotYou.length > 0 && (
         <div className="mx-auto max-w-md rounded-2xl border border-rose-500/30 bg-rose-500/5 p-4 text-left">
-          <p className="text-xs font-semibold uppercase tracking-widest text-rose-300">Hooks that got you</p>
+          <p className="font-display text-sm text-rose-300">Hooks that got you</p>
           <p className="mt-2 text-zinc-200">{gotYou.join(" · ")}</p>
           <p className="mt-2 text-sm text-zinc-500">Watch for these next time. Spotting the hook is half the battle.</p>
         </div>

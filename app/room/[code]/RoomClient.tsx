@@ -106,12 +106,14 @@ export default function RoomClient({ code }: { code: string }) {
         !seat && !room.player_b ? (
           <JoinInline code={code} player={player} register={register} accept={accept} host={room.player_a} />
         ) : (
-          <div className="space-y-4 px-4 py-10 text-center">
-            <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">Scan to join, or use the code</p>
-            <JoinQR code={room.code} />
-            <p className="font-mono text-6xl font-black tracking-[0.2em] text-sky-400">{room.code}</p>
+          <div className="space-y-5 px-4 py-8 text-center">
+            <p className="font-display text-xl text-bone">Waiting for a challenger</p>
+            <div className="mx-auto w-fit rounded-3xl bg-bone p-3 shadow-[0_0_60px_-10px_rgb(255_210_63/0.5)]">
+              <JoinQR code={room.code} size={190} />
+            </div>
+            <p className="text-sm text-zinc-400">Scan it, or join with the code</p>
+            <p className="font-display text-6xl tracking-[0.12em] text-spot">{room.code}</p>
             <CopyLink code={room.code} />
-            <p className="animate-pulse pt-4 text-zinc-500">Waiting for an opponent…</p>
             <Link href={`/room/${room.code}/screen`} target="_blank" className="inline-block pt-2 text-sm text-sky-400 underline">
               📺 Open the projector view
             </Link>
@@ -148,7 +150,7 @@ export default function RoomClient({ code }: { code: string }) {
         <>
           <TopicBanner topic={room.topic} />
           <Countdown endsAt={room.phase_ends_at} total={room.reply_seconds} now={now} />
-          <Post name={baiter} text={room.bait ?? ""} meta="just now" big />
+          <Post name={baiter} text={room.bait ?? ""} meta="just now" big corner="fire" />
           {seat === replierSeat(room.turn) ? (
             <Composer
               key={phaseKey}
@@ -170,11 +172,11 @@ export default function RoomClient({ code }: { code: string }) {
       {room.phase === "judging" && (
         <>
           <TopicBanner topic={room.topic} />
-          <Post name={baiter} text={room.bait || <i className="text-zinc-500">(posted nothing)</i>} meta="bait" />
+          <Post name={baiter} text={room.bait || <i className="text-zinc-500">(posted nothing)</i>} meta="bait" corner="fire" />
           {room.ignored ? (
-            <div className="border-b border-zinc-800 px-4 py-3 text-sm italic text-zinc-500">{replier} scrolled past 🧘</div>
+            <p className="px-6 py-2 text-sm italic text-zinc-500">{replier} scrolled past 🧘</p>
           ) : (
-            <Post name={replier} text={room.reply ?? ""} meta="replying" />
+            <Post name={replier} text={room.reply ?? ""} meta="replying" corner="ice" />
           )}
           <JudgeCooking />
         </>
@@ -188,7 +190,7 @@ export default function RoomClient({ code }: { code: string }) {
           <div className="flex justify-center py-6 pb-10">
             {seat ? (
               <Button disabled={busy} onClick={() => act({ type: "next" })}>
-                {room.turn + 1 >= TOTAL_TURNS ? "See final results →" : "Next round (swap roles) →"}
+                {room.turn + 1 >= TOTAL_TURNS ? "Final results" : "Next round: swap corners"}
               </Button>
             ) : (
               <p className="text-sm text-zinc-500">Waiting for the players…</p>
@@ -201,7 +203,7 @@ export default function RoomClient({ code }: { code: string }) {
       {room.phase === "recap" && <Recap room={room} turns={turns} seat={seat} token={player?.token ?? null} />}
 
       {toast && (
-        <div className="fixed inset-x-0 bottom-6 z-50 mx-auto w-fit rounded-full bg-rose-500 px-5 py-2 text-sm font-semibold text-white shadow-lg">
+        <div className="fixed inset-x-0 bottom-6 z-50 mx-auto w-fit rounded-full bg-fire px-5 py-2 text-sm font-semibold text-night shadow-lg">
           {toast}
         </div>
       )}
@@ -213,56 +215,74 @@ export default function RoomClient({ code }: { code: string }) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-black text-zinc-100">
-      <div className="mx-auto min-h-screen max-w-xl border-x border-zinc-800">{children}</div>
+    <main className="min-h-screen bg-transparent text-zinc-100">
+      <div className="mx-auto min-h-screen max-w-xl pb-10">{children}</div>
     </main>
   );
 }
 
 function Header({ room, seat, role }: { room: Room; seat: "a" | "b" | null; role: string | null }) {
   const round = Math.min(GAME.MATCH_ROUNDS, room.turn + 1);
+  const fighting = room.phase !== "lobby" && room.phase !== "recap";
+  const cornerOf = (s: "a" | "b"): "fire" | "ice" | undefined => (!fighting ? undefined : baiterSeat(room.turn) === s ? "fire" : "ice");
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-800 bg-black/80 px-4 py-3 backdrop-blur">
+    <header className="sticky top-0 z-40 bg-night/85 px-3 pb-3 pt-2 backdrop-blur">
       <div className="flex items-center justify-between">
-        <Link href="/" className="text-lg font-black tracking-tight">🎣 Bait Arena</Link>
+        <Link href="/" className="marquee-sm text-lg" aria-label="Bait Arena home">BAIT ARENA</Link>
         <div className="flex items-center gap-2">
-          {role && <Pill tone={role === "baiting" ? "rose" : role === "defending" ? "emerald" : "zinc"}>{role === "baiting" ? "You're baiting" : role === "defending" ? "You're defending" : "Spectating 👀"}</Pill>}
-          <Pill>{room.code}</Pill>
+          {role === "spectating" && <Pill>Watching 👀</Pill>}
+          <span className="font-display text-xs tracking-widest text-zinc-500">{room.code}</span>
           <SoundToggle />
         </div>
       </div>
-      {room.player_b && (
-        <div className="mt-3 flex items-center justify-between text-sm">
-          <Score name={room.player_a} score={room.score_a} me={seat === "a"} elo={room.elo_a} />
-          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            {room.phase === "recap" ? "Final" : `Round ${round}/${GAME.MATCH_ROUNDS}`}
-          </span>
-          <Score name={room.player_b} score={room.score_b} me={seat === "b"} elo={room.elo_b} right />
+      {room.player_b ? (
+        <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
+          <CornerCard name={room.player_a} score={room.score_a} elo={room.elo_a} me={seat === "a"} corner={cornerOf("a")} />
+          <div className="flex flex-col items-center justify-center px-1">
+            <span className="font-display text-2xl leading-none text-spot">VS</span>
+            <span className="mt-1 whitespace-nowrap text-[11px] font-semibold text-zinc-400">
+              {room.phase === "recap" ? "Final" : `Round ${round} of ${GAME.MATCH_ROUNDS}`}
+            </span>
+          </div>
+          <CornerCard name={room.player_b} score={room.score_b} elo={room.elo_b} me={seat === "b"} corner={cornerOf("b")} right />
         </div>
+      ) : null}
+      {role && role !== "spectating" && (room.phase === "bait" || room.phase === "reply") && (
+        <p className={`mt-2 rounded-lg py-1 text-center text-xs font-bold ${role === "baiting" ? "bg-fire/15 text-rose-300" : "bg-ice/15 text-emerald-300"}`}>
+          {role === "baiting" ? "🔥 You're in the red corner: post the bait" : "🧊 You're in the blue corner: don't take the bait"}
+        </p>
       )}
     </header>
   );
 }
 
-function Score({ name, score, me, elo, right }: { name: string; score: number; me: boolean; elo: number | null; right?: boolean }) {
+/** One side of the tale-of-the-tape scoreboard. Glows red/blue for whoever is baiting/defending this round. */
+function CornerCard({
+  name, score, elo, me, corner, right,
+}: { name: string; score: number; elo: number | null; me: boolean; corner?: "fire" | "ice"; right?: boolean }) {
+  const skin =
+    corner === "fire" ? "border-fire bg-fire/15" : corner === "ice" ? "border-ice bg-ice/15" : "border-zinc-800 bg-canvas";
   return (
-    <div className={`flex items-center gap-2 ${right ? "flex-row-reverse text-right" : ""}`}>
-      <Avatar name={name} size={28} />
-      <div className="min-w-0">
-        <p className={`max-w-28 truncate leading-tight ${me ? "font-bold text-sky-300" : "text-zinc-300"}`}>{name}{me ? " (you)" : ""}</p>
-        <TierBadge elo={elo} />
+    <div className={`min-w-0 rounded-2xl border-2 px-2.5 py-2 transition-colors ${skin} ${right ? "text-right" : ""}`}>
+      <div className={`flex min-w-0 items-center gap-2 ${right ? "flex-row-reverse" : ""}`}>
+        <Avatar name={name} size={26} corner={corner} />
+        <p className="min-w-0 truncate text-sm font-bold leading-tight">{name}{me ? " (you)" : ""}</p>
       </div>
-      <span className="font-mono text-lg font-bold">{score}</span>
+      <div className={`mt-1.5 flex items-end justify-between gap-1 ${right ? "flex-row-reverse" : ""}`}>
+        <span className="min-w-0 truncate"><TierBadge elo={elo} /></span>
+        <span className="font-display text-2xl leading-none text-spot">{score}</span>
+      </div>
     </div>
   );
 }
 
+/** The round card: which category everyone is fighting over. */
 function TopicBanner({ topic }: { topic: string | null }) {
   const cat = getCategory(topic);
   return (
-    <div className="border-b border-zinc-800 px-4 py-4 text-center">
-      <span className="text-xs uppercase tracking-[0.25em] text-zinc-500">Hot-take category</span>
-      <p className="text-3xl font-black">{cat.emoji} {cat.label}</p>
+    <div className="mx-3 mt-3 rounded-2xl bg-canvas px-4 py-4 text-center">
+      <p className="text-4xl leading-none" aria-hidden>{cat.emoji}</p>
+      <p className="mt-2 font-display text-2xl leading-tight text-bone">{cat.label}</p>
       <p className="mt-1 text-sm text-zinc-400">{cat.prompt}</p>
     </div>
   );
@@ -274,11 +294,11 @@ function Inspo({ topic }: { topic: string | null }) {
   const [i, setI] = useState<number | null>(null);
   if (!takes.length) return null;
   return (
-    <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-2 text-sm">
+    <div className="mx-3 mt-3 flex items-center gap-3 text-sm">
       <button
         type="button"
         onClick={() => setI((prev) => (prev === null ? Math.floor(Math.random() * takes.length) : (prev + 1) % takes.length))}
-        className="shrink-0 rounded-full border border-zinc-700 px-3 py-1 font-semibold text-zinc-300 hover:bg-zinc-800"
+        className="shrink-0 rounded-full border-2 border-zinc-700 px-3 py-1 font-semibold text-zinc-200 hover:border-spot"
       >
         Inspo 🎲
       </button>
@@ -291,7 +311,7 @@ function Inspo({ topic }: { topic: string | null }) {
 
 function Typing({ name, label }: { name: string; label: string }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-8 text-zinc-400">
+    <div className="flex items-center justify-center gap-3 px-4 py-10 text-zinc-400">
       <Avatar name={name} />
       <span><b className="text-zinc-200">{name}</b> {label}</span>
       <span className="flex gap-1">
@@ -340,7 +360,7 @@ function JoinInline({
 
   return (
     <div className="space-y-5 px-6 py-12 text-center">
-      <h2 className="text-2xl font-black">@{host} challenged you 🎣</h2>
+      <h2 className="font-display text-2xl">@{host} challenged you 🎣</h2>
       {player ? (
         <>
           <Button

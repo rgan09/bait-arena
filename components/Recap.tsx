@@ -41,15 +41,15 @@ export function Recap({ room, turns, seat, token }: { room: Room; turns: TurnRec
 
   return (
     <div className="space-y-6 px-4 py-8 text-center">
-      <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">Final</p>
       {winner ? (
-        <div className="flex flex-col items-center gap-3">
-          <Avatar name={winner} size={72} />
-          <h2 className="text-4xl font-black">{winner} wins 👑</h2>
-          {tieBroken && <p className="text-sm text-zinc-400">Tied on points, won on composure 🧊</p>}
+        <div className="mx-auto max-w-sm animate-[vsPunch_.6s_ease-out] rounded-[2rem] border-4 border-spot bg-gradient-to-b from-spot/25 to-canvas px-6 py-6 shadow-[0_0_80px_-20px_rgb(255_210_63/0.7)]">
+          <div className="flex justify-center"><Avatar name={winner} size={76} /></div>
+          <p className="mt-3 font-display text-lg text-spot">Winner by decision</p>
+          <h2 className="font-display text-4xl leading-tight text-bone">{winner}</h2>
+          {tieBroken && <p className="mt-1 text-sm text-zinc-300">Tied on points, won on composure 🧊</p>}
         </div>
       ) : (
-        <h2 className="text-4xl font-black">Dead even 🤝</h2>
+        <h2 className="font-display text-4xl text-bone">Draw 🤝</h2>
       )}
 
       <div className="mx-auto grid max-w-md grid-cols-2 gap-3">
@@ -67,33 +67,33 @@ export function Recap({ room, turns, seat, token }: { room: Room; turns: TurnRec
           )
         ) : (
           room.rematch_code && (
-            <Link href={`/room/${room.rematch_code}`} className="text-sky-400 underline">Watch the rematch →</Link>
+            <Link href={`/room/${room.rematch_code}`} className="font-semibold text-spot underline">Watch the rematch</Link>
           )
         )}
         {err && <p className="text-sm text-rose-400">{err}</p>}
       </div>
 
       {best && best.bait && (
-        <div className="mx-auto max-w-md rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 text-left">
+        <div className="mx-auto max-w-md rounded-2xl border-l-4 border-l-fire bg-canvas p-5 text-left">
           <Pill tone="amber">🏆 Hottest take</Pill>
           <p className="mt-3 text-sm text-zinc-500">{best.baiter} · {getCategory(best.topic).emoji} {getCategory(best.topic).label}</p>
-          <p className="mt-1 text-xl text-zinc-100">“{best.bait}”</p>
+          <p className="mt-1 text-xl font-semibold text-bone">“{best.bait}”</p>
           <p className="mt-3 text-zinc-300">🔥 {best.result.roast}</p>
         </div>
       )}
 
       <div className="mx-auto max-w-md space-y-2 text-left">
         {turns.map((t) => (
-          <div key={t.turn} className="flex items-center justify-between gap-3 rounded-xl bg-zinc-900 px-4 py-2 text-sm">
-            <span className="truncate text-zinc-300">R{t.round} · {t.baiter} · {getCategory(t.topic).emoji} {getCategory(t.topic).label}</span>
-            <span className="shrink-0 font-mono text-zinc-400">+{t.bait_points} / +{t.reply_points}</span>
+          <div key={t.turn} className="flex items-center justify-between gap-3 rounded-xl bg-canvas px-4 py-2 text-sm">
+            <span className="truncate text-zinc-300">Round {t.round}: {t.baiter} on {getCategory(t.topic).emoji} {getCategory(t.topic).label}</span>
+            <span className="shrink-0 text-zinc-400"><b className="text-rose-300">🔥 {t.bait_points}</b> / <b className="text-emerald-300">🧊 {t.reply_points}</b></span>
           </div>
         ))}
       </div>
 
       <div className="flex justify-center gap-3">
-        <Link href="/leaderboard" className="rounded-full border border-zinc-700 px-5 py-2.5 font-bold text-zinc-200 hover:bg-zinc-800">🏆 Leaderboard</Link>
-        <Link href="/" className="rounded-full border border-zinc-700 px-5 py-2.5 font-bold text-zinc-200 hover:bg-zinc-800">Home</Link>
+        <Link href="/leaderboard" className="rounded-xl border-2 border-zinc-700 bg-canvas px-5 py-2.5 font-display text-sm text-bone hover:border-spot">🏆 Rankings</Link>
+        <Link href="/" className="rounded-xl border-2 border-zinc-700 bg-canvas px-5 py-2.5 font-display text-sm text-bone hover:border-spot">Home</Link>
       </div>
     </div>
   );
@@ -105,12 +105,12 @@ function PlayerResult({
   const delta = elo ? elo.after - elo.before : null;
   const promoted = elo && tierFor(elo.after).name !== tierFor(elo.before).name;
   return (
-    <div className={`rounded-2xl border p-4 ${me ? "border-sky-500/40 bg-sky-500/5" : "border-zinc-800"}`}>
+    <div className={`rounded-2xl border-2 p-4 ${me ? "border-spot/60 bg-spot/5" : "border-zinc-800 bg-canvas"}`}>
       <p className="truncate font-bold">{name}{me ? " (you)" : ""}</p>
-      <p className="font-mono text-3xl font-black text-sky-400">{score}</p>
+      <p className="font-display text-4xl text-spot">{score}</p>
       {elo ? (
         <>
-          <p className="mt-1 font-mono text-sm">
+          <p className="mt-1 text-sm tabular-nums">
             {elo.before} → <b>{elo.after}</b>{" "}
             <span className={delta! >= 0 ? "text-emerald-400" : "text-rose-400"}>({delta! >= 0 ? "+" : ""}{delta})</span>
           </p>

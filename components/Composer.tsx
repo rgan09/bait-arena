@@ -20,7 +20,7 @@ export function Composer({
 
   return (
     <form
-      className="flex gap-3 border-b border-zinc-800 px-4 py-4"
+      className="mx-3 my-3 flex gap-3 rounded-2xl border-2 border-spot/60 bg-canvas px-4 py-4 shadow-[0_0_40px_-12px_rgb(255_210_63/0.45)]"
       onSubmit={(e) => {
         e.preventDefault();
         if (text.trim() && !busy) onSubmit(text);
@@ -41,7 +41,7 @@ export function Composer({
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && text.trim() && !busy) onSubmit(text);
           }}
-          className="w-full resize-none bg-transparent text-xl text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
+          className="w-full resize-none bg-transparent focus-visible:outline-none text-xl font-semibold text-bone placeholder:font-normal placeholder:text-zinc-500 focus:outline-none"
         />
         <div className="mt-2 flex items-center justify-between border-t border-zinc-800 pt-3">
           <span className={`font-mono text-xs ${left < 20 ? "text-rose-400" : "text-zinc-500"}`}>{left}</span>

@@ -1,23 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
+import "@fontsource/bungee/400.css";
+import "@fontsource-variable/archivo/wdth.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Bait Arena",
-  description: "1v1 hot-take battles judged by AI. Post bait. Don't take the bait.",
+  description: "1v1 hot-take fights judged by AI. Post bait. Don't take the bait.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: "#1a0f2e",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-black">{children}</body>
+    <html lang="en" className="h-full antialiased">
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }
