@@ -2,7 +2,7 @@
 // To stay inside the Gemini free tier, coaching and the NEXT bait come back in one call.
 // Every function here falls back to pre-written content and never throws.
 
-import { getCategory } from "@/lib/categories";
+import { categoryBrief, getCategory } from "@/lib/categories";
 import { ZEN, type ZenBait, type ZenCoach, type ZenDifficulty } from "@/lib/zen";
 import { fallbackJudge } from "./pipeline";
 import { BlockedBySafety, generateJson } from "./gemini";
@@ -25,7 +25,9 @@ const BAIT_RULES = `BAIT RULES:
 - Write it like a real social media post: first person, no hashtags, no emoji spam, max 200 characters.
 - Stay inside the category. Harmless topics only.
 - NEVER mention real people, real groups (race, religion, gender, sexuality, disability, nationality),
-  politics, slurs, threats or sexual content. PG-13. The provocation comes from the take, not from insults.`;
+  politics, slurs, threats or sexual content. PG-13. The provocation comes from the take, not from insults.
+- Exception: if the category has a Context naming people who are fair game for friendly teasing, you MAY tease
+  them about club things using the inside jokes in the Context. Never about appearance or identity.`;
 
 const BAIT_SYSTEM = `You write ragebait posts for ZEN MODE of BAIT ARENA, a game that trains people NOT to get baited.
 The trainee will try to reply calmly to what you write, so make it genuinely tempting to argue with.
@@ -48,6 +50,7 @@ SCORES (integers 0-10, only meaningful if they replied):
   A decent counter = 5-7. Weak, generic or off-topic = 0-3.
 - took_bait: true if the reply is heated, defensive, or takes the take far too seriously.
 - flagged_response: true if the reply contains slurs, hate toward real groups, threats, sexual content or personal attacks.
+  Friendly teasing of people the category Context says are fair game is NOT a personal attack.
 If IGNORED: composure 0, ratio 0, took_bait false, flagged_response false.
 
 COACHING:
@@ -90,10 +93,7 @@ const COACH_SCHEMA = {
   required: ["composure", "ratio", "took_bait", "flagged_response", "hook", "verdict", "tip", "better_reply", "next_bait"],
 } as const;
 
-const categoryLine = (id: string) => {
-  const c = getCategory(id);
-  return `${c.label}: ${c.prompt}`;
-};
+const categoryLine = (id: string) => categoryBrief(getCategory(id));
 
 // ---------- fallbacks ----------
 

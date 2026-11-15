@@ -21,6 +21,9 @@ If the responder IGNORED it, set composure 7, ratio 0, took_bait false.
 FLAGS — "bait the topic, not the person":
 - flagged_bait = true if the bait contains slurs, hate toward real groups (race, religion, gender, sexuality, disability,
   nationality), threats, sexual content, or attacks on real named people or on the other player.
+- Exception: if the category's Context says certain named people are fair game for friendly teasing, light teasing
+  of THOSE people about club things is banter, not an attack. Slurs, threats, sexual content and jokes about
+  appearance or identity are still flagged.
 - flagged_response = true under the same rules for the reply.
 - If flagged, the roast for that post politely calls it out.
 

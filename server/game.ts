@@ -2,7 +2,7 @@
 // API routes call these functions; they never touch the database or AI directly.
 
 import { after } from "next/server";
-import { getCategory } from "@/lib/categories";
+import { categoryBrief, getCategory } from "@/lib/categories";
 import type { Action, Player, Room, TurnRecord } from "@/lib/types";
 import { judge } from "./ai/pipeline";
 import { createPlayer, findPlayerByToken, getPlayers, topPlayers, updatePlayerStats } from "./db/players";
@@ -107,7 +107,7 @@ export async function judgeTurn(code: string, turn: number, forceFallback = fals
 
   const cat = getCategory(snapshot.topic);
   const result = await judge(
-    { topic: `${cat.label} — ${cat.prompt}`, bait: snapshot.bait ?? "", response: snapshot.ignored ? null : snapshot.reply ?? "" },
+    { topic: categoryBrief(cat), bait: snapshot.bait ?? "", response: snapshot.ignored ? null : snapshot.reply ?? "" },
     { forceFallback },
   );
 
