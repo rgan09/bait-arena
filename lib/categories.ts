@@ -186,7 +186,8 @@ export function randomCategoryId(exclude?: string | null): string {
 
 /** Same category for everyone on a given day — for Person B's daily challenge. */
 export function dailyCategoryId(date = new Date()): string {
-  const day = Math.floor(date.getTime() / 86_400_000);
+  // Local calendar day, so the challenge flips at the player's midnight (not 4pm in LA = UTC midnight).
+  const day = Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000);
   return CATEGORY_IDS[day % CATEGORY_IDS.length];
 }
 

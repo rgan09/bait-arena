@@ -40,9 +40,22 @@ export type JudgeBaitResult = {
 export type GenerateBaitRequest = { topic: string; difficulty: 1 | 2 | 3 };
 export type GenerateBaitResult = { bait: string };
 
-// POST /api/fake-replies — comment section (Person B)
+// POST /api/fake-replies — comment section
+export type FakeReply = { username: string; text: string; likes: number };
 export type FakeRepliesRequest = { bait: string; score: number }; // score 0–30
-export type FakeRepliesResult = { replies: { username: string; text: string; likes: number }[] };
+export type FakeRepliesResult = { replies: FakeReply[] };
+
+// POST /api/school/post — Bait School does judge-bait + fake replies in ONE AI call (free tier is tight)
+export type SchoolPostRequest = {
+  category: string; // category id from lib/categories.ts
+  bait: string;
+  technique: string | null; // lesson id from lib/lessons.ts when practising a technique
+};
+export type SchoolPostResult = JudgeBaitResult & {
+  technique_hit: boolean | null; // null when no technique was being practised
+  replies: FakeReply[]; // more + angrier for better bait
+  source: "ai" | "fallback";
+};
 
 // ===================== Battle (Person A) =====================
 

@@ -50,6 +50,14 @@ Auth: pick a username once → you get a secret token (kept in localStorage) →
 
 Errors always look like `{ "error": { "code": "not_your_turn", "message": "…" } }`.
 
+## Bait School (/school)
+
+Learn-to-ragebait mode: a **daily challenge** (one category per local day, personal best saved on the device),
+**5 technique lessons** (`lib/lessons.ts`), each with an example and a "Try it" that tags the technique, and **free practice**.
+Each post makes ONE Gemini call (`POST /api/school/post`) that grades the bait, checks the technique, and writes the
+fake comment section, which grows and gets angrier with the score. `/api/judge-bait` and `/api/fake-replies` implement the
+plan's separate contracts for anyone who needs them.
+
 ## Ranked
 
 Everyone starts at 1000 Elo. When a match ends the server applies standard Elo (K = 32) exactly once.
@@ -67,5 +75,5 @@ Local dev: `cp .env.example .env.local`, fill it in, then `npm install && npm ru
 ## Scripts
 
 - `npm run dev` — local dev server
-- `npm test` — engine + AI pipeline tests (no network needed)
+- `npm test` — engine, AI pipeline and Bait School tests (no network needed)
 - `npm run typecheck`, `npm run lint`

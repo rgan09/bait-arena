@@ -25,3 +25,11 @@ export const ActionBody = z.discriminatedUnion("type", [
   z.object({ type: z.literal("timeout") }),
   z.object({ type: z.literal("next") }),
 ]);
+
+export const JudgeBaitBody = z.object({ topic: z.string().trim().min(1).max(200), bait: z.string().max(2000) });
+export const FakeRepliesBody = z.object({ bait: z.string().max(2000), score: z.number().min(0).max(30) });
+export const SchoolPostBody = z.object({
+  category: z.string().trim().min(1).max(40),
+  bait: z.string().trim().min(1, "Write a take first.").max(GAME.MAX_POST_CHARS, `Max ${GAME.MAX_POST_CHARS} characters.`),
+  technique: z.string().max(40).nullable().optional(),
+});
